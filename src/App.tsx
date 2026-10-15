@@ -66,7 +66,10 @@ export default function App() {
   const joinRoom = async () => {
     if (name.trim().length < 2) { setError("Enter a nickname with at least 2 characters."); return; }
     if (codeInput.trim().length < 4) { setError("Enter the room code."); return; }
-    await act({action:"join_room", code:codeInput.trim().toUpperCase(), name:name.trim(), token});
+    // Joining a room needs a new guest identity, including same-browser testing.
+    const joinToken = crypto.randomUUID() + crypto.randomUUID();
+    localStorage.setItem("shadow-impostor-player-token", joinToken);
+    await act({action:"join_room", code:codeInput.trim().toUpperCase(), name:name.trim(), token:joinToken});
   };
   const sendClue = async () => {
     if (!game || clue.trim().length < 1) return;
@@ -106,7 +109,7 @@ export default function App() {
         {phase === "guess" && game.you.role === "impostor" && <div className="action-form"><label>GUESS THE CREW'S SECRET WORD</label><input className="text-input" value={guess} onChange={e=>setGuess(e.target.value)} placeholder="Your final guess..." maxLength={60}/><button className="primary" disabled={busy||!guess.trim()} onClick={()=>void act({action:"guess_secret",code:game.room.code,token,guess:guess.trim()})}>Make final guess <span>↗</span></button></div>}
         {phase === "results" && <div className="secret"><p className="eyebrow">WINNER</p><h2>{game.room.winner?.toUpperCase() ?? "ROUND COMPLETE"}</h2><p className="word">Secret: {game.room.secret_word ?? "hidden"}</p><button className="primary" disabled={busy||!game.you.is_host} onClick={()=>void act({action:"start_game",code:game.room.code,token})}>Play another round <span>↗</span></button></div>}
         <div className="players-wrap"><h2>Crew</h2><ul className="players">{game.players.map(p=><li key={p.player_id}><span>{p.name}{p.is_host?" · HOST":""}{p.player_id===game.you.player_id?" · YOU":""}</span><span>{p.alive?"●":"ELIMINATED"}</span></li>)}</ul></div>
-        <div className="chat-box"><h2>Room chat</h2><div className="chat-list">{game.chat.slice(-30).map((m,i)=><p key={i}><strong>{m.name}:</strong> {m.message}</p>)}</div><div className="join"><div><input aria-label="Chat message" placeholder="Say something..." value={message} maxLength={300} onChange={e=>setMessage(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")void sendMessage()}}/><button disabled={busy||!message.trim()} onClick={()=>void sendMessage()}>Send</button></div></div></div>
+        {phase !== "lobby" && phase !== "results" && <div className="chat-box"><h2>Room chat</h2><div className="chat-list">{game.chat.slice(-30).map((m,i)=><p key={i}><strong>{m.name}:</strong> {m.message}</p>)}</div><div className="join"><div><input aria-label="Chat message" placeholder="Say something..." value={message} maxLength={300} onChange={e=>setMessage(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")void sendMessage()}}/><button disabled={busy||!message.trim()} onClick={()=>void sendMessage()}>Send</button></div></div></div>}
         <button className="secondary" disabled={busy} onClick={()=>void act({action:"leave_room",code:game.room.code,token})}>Leave room</button>
       </div>
     </section>}
