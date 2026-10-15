@@ -11,7 +11,7 @@ function playerToken() {
   }
   return token;
 }
-const token = playerToken();
+let token = playerToken();
 type View = "home" | "room";
 export default function App() {
   const [view, setView] = useState<View>("home");
@@ -68,6 +68,7 @@ export default function App() {
     if (codeInput.trim().length < 4) { setError("Enter the room code."); return; }
     // Joining a room needs a new guest identity, including same-browser testing.
     const joinToken = crypto.randomUUID() + crypto.randomUUID();
+    token = joinToken;
     localStorage.setItem("shadow-impostor-player-token", joinToken);
     await act({action:"join_room", code:codeInput.trim().toUpperCase(), name:name.trim(), token:joinToken});
   };
