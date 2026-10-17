@@ -90,7 +90,11 @@ export default function App() {
   };
   const phase = game?.room.phase;
   const submittedClues = game?.players.filter(p => p.has_clued).length ?? 0;
-  const playerTotal = game?.players.length ?? 0;\n  const phaseDuration = phase === "clue" ? 30 : phase === "discussion" ? 60 : phase === "voting" ? 45 : phase === "guess" ? 15 : 0;\n  const phaseStartedAt = game?.room.phase_started_at ? new Date(game.room.phase_started_at).getTime() : clockNow;\n  const secondsLeft = phaseDuration ? Math.max(0, phaseDuration - Math.floor((clockNow - phaseStartedAt) / 1000)) : 0;\n  const phaseProgress = phaseDuration ? Math.min(100, Math.max(0, ((phaseDuration - secondsLeft) / phaseDuration) * 100)) : 0;
+  const playerTotal = game?.players.length ?? 0;
+  const phaseDuration = phase === "clue" ? 30 : phase === "discussion" ? 60 : phase === "voting" ? 45 : phase === "guess" ? 15 : 0;
+  const phaseStartedAt = game?.room.phase_started_at ? new Date(game.room.phase_started_at).getTime() : clockNow;
+  const secondsLeft = phaseDuration ? Math.max(0, phaseDuration - Math.floor((clockNow - phaseStartedAt) / 1000)) : 0;
+  const phaseProgress = phaseDuration ? Math.min(100, Math.max(0, ((phaseDuration - secondsLeft) / phaseDuration) * 100)) : 0;
   const waitingTitle = phase === "lobby" ? "The crew is assembling" : phase === "clue" ? "The clues are taking shape" : phase === "discussion" ? "Read between the lines" : phase === "voting" ? "The votes are being sealed" : phase === "guess" ? "One last chance" : phase === "results" ? "The truth is out" : "The shadows are moving";
   return <main className="shell">
     <div className="glow glow-one" /><div className="glow glow-two" />
