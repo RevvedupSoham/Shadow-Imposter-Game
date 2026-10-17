@@ -46,8 +46,12 @@ export default function App() {
       } else if (action.action === "leave_room") {
         setGame(null); setView("home");
       } else if (game) {
-        const fresh = await sendAction({action:"get_state", code:game.room.code, token});
-        if ("room" in fresh) { setGame(fresh as GameSnapshot); setStats((fresh as GameSnapshot).stats); }
+        // The requested action may already have succeeded even if this follow-up refresh fails.
+        // Never tell the UI to retry a non-idempotent action such as chat because of a refresh error.
+        try {
+          const fresh = await sendAction({action:"get_state", code:game.room.code, token});
+          if ("room" in fresh) { setGame(fresh as GameSnapshot); setStats((fresh as GameSnapshot).stats); }
+        } catch { /* the room polling loop will reconcile state */ }
       }
       return true;
     } catch (e) { setError(e instanceof Error ? e.message : "Something went wrong. Please try again."); return false; }
