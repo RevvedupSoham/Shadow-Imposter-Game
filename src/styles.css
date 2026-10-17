@@ -476,26 +476,3 @@ body { min-height: 100vh; min-height: 100dvh; }
   .shell { padding-bottom: max(12px, env(safe-area-inset-bottom)); }
   .room-view { margin-top: 24px; }
 }
-
-
-/* Keep the home screen's primary action visible sooner on laptop-sized viewports. */
-.hero.cinematic-home {
-  margin-top: clamp(18px, 3vh, 34px);
-  margin-bottom: 24px;
-  row-gap: 0;
-}
-.cinematic-home .cinema-scene {
-  min-height: 0;
-  height: clamp(250px, 35vh, 340px);
-}
-.cinematic-home .cinema-copy h1 { font-size: clamp(44px, 5.5vw, 64px); }
-.cinematic-home .cinema-copy .intro { margin: 14px 0 18px; max-width: 48ch; }
-.cinematic-home > .panel { margin-top: 12px; padding: 20px clamp(20px, 2.5vw, 28px); }
-.cinematic-home .panel-head { margin-bottom: 16px; }
-.cinematic-home .cinematic-home .features { margin-top: 16px; padding: 12px 0; }
-@media (min-width: 761px) and (max-height: 820px) {
-  .hero.cinematic-home { margin-top: 12px; }
-  .cinematic-home .cinema-scene { height: 230px; }
-  .cinematic-home .cinema-copy h1 { font-size: clamp(42px, 4.6vw, 56px); }
-  .cinematic-home .cinematic-home .intro { margin: 10px 0 12px; }
-}
