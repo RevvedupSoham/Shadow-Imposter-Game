@@ -89,6 +89,14 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    // Once the cinematic boot overlay leaves, re-anchor the actual page content at the top.
+    if (loadingScreen) return;
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    const frame = window.requestAnimationFrame(() => window.scrollTo({ top: 0, left: 0, behavior: "auto" }));
+    return () => window.cancelAnimationFrame(frame);
+  }, [loadingScreen]);
+
+  useEffect(() => {
     const minimum = window.setTimeout(() => setMinimumLoadingElapsed(true), 6800);
     const failsafe = window.setTimeout(() => setLoadingScreen(false), 9000);
     return () => { window.clearTimeout(minimum); window.clearTimeout(failsafe); };
