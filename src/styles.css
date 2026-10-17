@@ -620,3 +620,35 @@ html, body {
 .shell > footer {
   margin-top: 24px !important;
 }
+
+
+/* Content visibility recovery: keep the home hero and its interactive controls
+   above the fixed cinematic video layer on first load. */
+.shell > .hero.cinematic-home {
+  display: grid !important;
+  position: relative !important;
+  z-index: 3 !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  transform: none !important;
+}
+.shell > .hero.cinematic-home > .cinema-copy,
+.shell > .hero.cinematic-home > .cinema-scene,
+.shell > .hero.cinematic-home > .panel,
+.shell > .hero.cinematic-home > .features {
+  position: relative !important;
+  z-index: 3 !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+.shell > .hero.cinematic-home .cinema-copy *,
+.shell > .hero.cinematic-home .panel *,
+.shell > .hero.cinematic-home .features * {
+  visibility: visible !important;
+}
+.shell > .hero.cinematic-home .cinema-copy h1,
+.shell > .hero.cinematic-home .cinema-copy .intro,
+.shell > .hero.cinematic-home .panel,
+.shell > .hero.cinematic-home .features {
+  color: #f3f4fa;
+}
