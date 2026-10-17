@@ -165,7 +165,7 @@ export default function App() {
     } catch { setError("Could not play sound. Check your browser audio settings."); }
   };
 
-  // Low-volume atmospheric drone. Audio starts only after the user enables SOUND.
+  // Original cinematic sci-fi score. Audio starts only after the user enables SOUND.
   useEffect(() => {
     if (!soundEnabled) {
       ambientNodesRef.current.forEach(node => { try { if (node instanceof OscillatorNode) node.stop(); } catch {} try { node.disconnect(); } catch {} });
@@ -175,32 +175,101 @@ export default function App() {
       if (oldContext && oldContext.state !== "closed") void oldContext.close();
       return;
     }
+    let chordTimer: number | undefined;
+    let pulseTimer: number | undefined;
     try {
       const AudioContextClass = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
       if (!AudioContextClass) return;
       const context = new AudioContextClass();
       ambientContextRef.current = context;
       if (context.state === "suspended") void context.resume();
+
       const master = context.createGain();
-      master.gain.value = 0.0001;
-      master.gain.setTargetAtTime(0.035, context.currentTime, 1.1);
+      master.gain.setValueAtTime(0.0001, context.currentTime);
+      master.gain.setTargetAtTime(0.055, context.currentTime, 1.8);
       master.connect(context.destination);
-      const filter = context.createBiquadFilter();
-      filter.type = "lowpass";
-      filter.frequency.value = 420;
-      filter.Q.value = 0.7;
-      filter.connect(master);
-      const low = context.createOscillator();
-      low.type = "triangle"; low.frequency.value = 55;
-      const high = context.createOscillator();
-      high.type = "sine"; high.frequency.value = 82.41;
-      const lowGain = context.createGain(); lowGain.gain.value = 0.48;
-      const highGain = context.createGain(); highGain.gain.value = 0.16;
-      low.connect(lowGain); lowGain.connect(filter);
-      high.connect(highGain); highGain.connect(filter);
-      low.start(); high.start();
-      ambientNodesRef.current = [low, high, lowGain, highGain, filter, master];
+
+      // Wide, choir-like pad with a soft, dark filter.
+      const padFilter = context.createBiquadFilter();
+      padFilter.type = "lowpass";
+      padFilter.frequency.value = 680;
+      padFilter.Q.value = 0.55;
+      padFilter.connect(master);
+      const padGain = context.createGain();
+      padGain.gain.value = 0.32;
+      padGain.connect(padFilter);
+
+      const chordSets = [
+        [110, 164.81, 220],
+        [98, 146.83, 196],
+        [130.81, 196, 261.63],
+        [87.31, 130.81, 174.61]
+      ];
+      const pads = chordSets[0].map((frequency, index) => {
+        const osc = context.createOscillator();
+        const voiceGain = context.createGain();
+        osc.type = index === 0 ? "triangle" : "sine";
+        osc.frequency.value = frequency;
+        osc.detune.value = index === 1 ? -7 : index === 2 ? 6 : 0;
+        voiceGain.gain.value = index === 0 ? 0.42 : 0.24;
+        osc.connect(voiceGain);
+        voiceGain.connect(padGain);
+        osc.start();
+        return osc;
+      });
+
+      // A restrained sub-bass foundation gives the score weight without a loud beat.
+      const sub = context.createOscillator();
+      const subGain = context.createGain();
+      sub.type = "sine";
+      sub.frequency.value = 55;
+      subGain.gain.value = 0.22;
+      sub.connect(subGain);
+      subGain.connect(master);
+      sub.start();
+
+      // Sparse, distant high notes create a mysterious, spacious motif.
+      const bell = context.createOscillator();
+      const bellGain = context.createGain();
+      const bellFilter = context.createBiquadFilter();
+      bell.type = "sine";
+      bell.frequency.value = 659.25;
+      bellGain.gain.value = 0.0001;
+      bellFilter.type = "lowpass";
+      bellFilter.frequency.value = 1150;
+      bell.connect(bellFilter);
+      bellFilter.connect(bellGain);
+      bellGain.connect(master);
+      bell.start();
+
+      let chordIndex = 0;
+      const setChord = () => {
+        chordIndex = (chordIndex + 1) % chordSets.length;
+        const now = context.currentTime;
+        chordSets[chordIndex].forEach((frequency, index) => {
+          pads[index].frequency.setTargetAtTime(frequency, now, 1.6);
+        });
+        sub.frequency.setTargetAtTime(chordSets[chordIndex][0] / 2, now, 2.2);
+        padFilter.frequency.setTargetAtTime(chordIndex === 2 ? 820 : 620 + (chordIndex % 2) * 100, now, 2.8);
+      };
+      chordTimer = window.setInterval(setChord, 7200);
+
+      const distantNotes = [659.25, 587.33, 523.25, 783.99, 659.25, 493.88];
+      let noteIndex = 0;
+      const playDistantNote = () => {
+        const now = context.currentTime;
+        bell.frequency.setTargetAtTime(distantNotes[noteIndex % distantNotes.length], now, 0.08);
+        bellGain.gain.cancelScheduledValues(now);
+        bellGain.gain.setValueAtTime(0.0001, now);
+        bellGain.gain.linearRampToValueAtTime(0.018, now + 0.8);
+        bellGain.gain.setTargetAtTime(0.0001, now + 1.1, 1.25);
+        noteIndex += 1;
+      };
+      pulseTimer = window.setInterval(playDistantNote, 5200);
+      ambientNodesRef.current = [master, padFilter, padGain, ...pads, sub, subGain, bell, bellGain, bellFilter];
       return () => {
+        if (chordTimer !== undefined) window.clearInterval(chordTimer);
+        if (pulseTimer !== undefined) window.clearInterval(pulseTimer);
         ambientNodesRef.current.forEach(node => { try { if (node instanceof OscillatorNode) node.stop(); } catch {} try { node.disconnect(); } catch {} });
         ambientNodesRef.current = [];
         if (ambientContextRef.current && ambientContextRef.current.state !== "closed") void ambientContextRef.current.close();
