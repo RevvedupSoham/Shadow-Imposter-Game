@@ -56,6 +56,11 @@ export default function App() {
   }, [game?.room.code]);
 
   useEffect(() => {
+    const clock = window.setInterval(() => setClockNow(Date.now()), 1000);
+    return () => window.clearInterval(clock);
+  }, []);
+
+  useEffect(() => {
     setVoteSubmitted(false);
     setTarget("");
   }, [game?.room.code, game?.room.phase, game?.room.round]);
