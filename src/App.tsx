@@ -165,117 +165,13 @@ export default function App() {
     } catch { setError("Could not play sound. Check your browser audio settings."); }
   };
 
-  // Original cinematic sci-fi score. Audio starts only after the user enables SOUND.
+  // Spotify playback is controlled by the embedded player. Browsers require the user to press Play.
   useEffect(() => {
     if (!soundEnabled) {
-      ambientNodesRef.current.forEach(node => { try { if (node instanceof OscillatorNode) node.stop(); } catch {} try { node.disconnect(); } catch {} });
-      ambientNodesRef.current = [];
       const oldContext = ambientContextRef.current;
       ambientContextRef.current = null;
       if (oldContext && oldContext.state !== "closed") void oldContext.close();
-      return;
     }
-    let chordTimer: number | undefined;
-    let pulseTimer: number | undefined;
-    try {
-      const AudioContextClass = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-      if (!AudioContextClass) return;
-      const context = new AudioContextClass();
-      ambientContextRef.current = context;
-      if (context.state === "suspended") void context.resume();
-
-      const master = context.createGain();
-      master.gain.setValueAtTime(0.0001, context.currentTime);
-      master.gain.setTargetAtTime(0.055, context.currentTime, 1.8);
-      master.connect(context.destination);
-
-      // Wide, choir-like pad with a soft, dark filter.
-      const padFilter = context.createBiquadFilter();
-      padFilter.type = "lowpass";
-      padFilter.frequency.value = 680;
-      padFilter.Q.value = 0.55;
-      padFilter.connect(master);
-      const padGain = context.createGain();
-      padGain.gain.value = 0.32;
-      padGain.connect(padFilter);
-
-      const chordSets = [
-        [110, 164.81, 220],
-        [98, 146.83, 196],
-        [130.81, 196, 261.63],
-        [87.31, 130.81, 174.61]
-      ];
-      const pads = chordSets[0].map((frequency, index) => {
-        const osc = context.createOscillator();
-        const voiceGain = context.createGain();
-        osc.type = index === 0 ? "triangle" : "sine";
-        osc.frequency.value = frequency;
-        osc.detune.value = index === 1 ? -7 : index === 2 ? 6 : 0;
-        voiceGain.gain.value = index === 0 ? 0.42 : 0.24;
-        osc.connect(voiceGain);
-        voiceGain.connect(padGain);
-        osc.start();
-        return osc;
-      });
-
-      // A restrained sub-bass foundation gives the score weight without a loud beat.
-      const sub = context.createOscillator();
-      const subGain = context.createGain();
-      sub.type = "sine";
-      sub.frequency.value = 55;
-      subGain.gain.value = 0.22;
-      sub.connect(subGain);
-      subGain.connect(master);
-      sub.start();
-
-      // Sparse, distant high notes create a mysterious, spacious motif.
-      const bell = context.createOscillator();
-      const bellGain = context.createGain();
-      const bellFilter = context.createBiquadFilter();
-      bell.type = "sine";
-      bell.frequency.value = 659.25;
-      bellGain.gain.value = 0.0001;
-      bellFilter.type = "lowpass";
-      bellFilter.frequency.value = 1150;
-      bell.connect(bellFilter);
-      bellFilter.connect(bellGain);
-      bellGain.connect(master);
-      bell.start();
-
-      let chordIndex = 0;
-      const setChord = () => {
-        chordIndex = (chordIndex + 1) % chordSets.length;
-        const now = context.currentTime;
-        chordSets[chordIndex].forEach((frequency, index) => {
-          pads[index].frequency.setTargetAtTime(frequency, now, 1.6);
-        });
-        sub.frequency.setTargetAtTime(chordSets[chordIndex][0] / 2, now, 2.2);
-        padFilter.frequency.setTargetAtTime(chordIndex === 2 ? 820 : 620 + (chordIndex % 2) * 100, now, 2.8);
-      };
-      chordTimer = window.setInterval(setChord, 7200);
-
-      const distantNotes = [659.25, 587.33, 523.25, 783.99, 659.25, 493.88];
-      let noteIndex = 0;
-      const playDistantNote = () => {
-        const now = context.currentTime;
-        bell.frequency.setTargetAtTime(distantNotes[noteIndex % distantNotes.length], now, 0.08);
-        bellGain.gain.cancelScheduledValues(now);
-        bellGain.gain.setValueAtTime(0.0001, now);
-        bellGain.gain.linearRampToValueAtTime(0.018, now + 0.8);
-        bellGain.gain.setTargetAtTime(0.0001, now + 1.1, 1.25);
-        noteIndex += 1;
-      };
-      pulseTimer = window.setInterval(playDistantNote, 5200);
-      ambientNodesRef.current = [master, padFilter, padGain, ...pads, sub, subGain, bell, bellGain, bellFilter];
-      return () => {
-        if (chordTimer !== undefined) window.clearInterval(chordTimer);
-        if (pulseTimer !== undefined) window.clearInterval(pulseTimer);
-        ambientNodesRef.current.forEach(node => { try { if (node instanceof OscillatorNode) node.stop(); } catch {} try { node.disconnect(); } catch {} });
-        ambientNodesRef.current = [];
-        if (ambientContextRef.current && ambientContextRef.current.state !== "closed") void ambientContextRef.current.close();
-        ambientContextRef.current = null;
-      };
-    } catch { /* Sound is optional; the game remains playable if audio is blocked. */ }
   }, [soundEnabled]);
 
   useEffect(() => {
@@ -328,7 +224,7 @@ export default function App() {
     <div className="cursor-orb" ref={cursorRef} aria-hidden="true"><span /></div>
     <div className="glow glow-one" /><div className="glow glow-two" />
     {loadingScreen && <section className="boot-screen" aria-label="Loading Shadow Impostor"><video className="boot-video" autoPlay muted loop playsInline preload="auto" onCanPlay={() => setBootVideoReady(true)} onError={() => setBootVideoReady(true)}><source src={mediaUrl("BG1.mp4")} type="video/mp4" /></video><div className="boot-shade" /><div className="boot-content"><span className="boot-mark">◈</span><p className="boot-kicker">A SOCIAL DEDUCTION EXPERIENCE</p><h1>SHADOW <span>IMPOSTOR</span></h1><div className="boot-loader" role="status" aria-live="polite"><span className="boot-loader-track"><i /></span><span>INITIALIZING THE SHADOWS</span></div><p className="boot-footnote">Securing the room · Preparing your experience</p></div><span className="boot-version">SYSTEM READY WHEN YOU ARE</span></section>}
-    <header><span className="mark">◈</span><span>SHADOW<span className="accent"> IMPOSTOR</span></span><div className="header-actions"><button className="sound-toggle" type="button" aria-pressed={soundEnabled} onClick={() => { const enabling = !soundEnabled; setSoundEnabled(enabling); if (enabling) playFeedback("confirm", true); }} title={soundEnabled ? "Mute interface sounds" : "Enable interface sounds"}><span>{soundEnabled ? "♫" : "♪"}</span> SOUND {soundEnabled ? "ON" : "OFF"}</button><span className="status"><i /> LIVE SOCIAL DEDUCTION</span></div></header>
+    <header><span className="mark">◈</span><span>SHADOW<span className="accent"> IMPOSTOR</span></span><div className="header-actions"><button className="sound-toggle" type="button" aria-pressed={soundEnabled} onClick={() => { const enabling = !soundEnabled; setSoundEnabled(enabling); if (enabling) playFeedback("confirm", true); }} title={soundEnabled ? "Hide theme music player" : "Open theme music player"}><span>{soundEnabled ? "♫" : "♪"}</span> THEME {soundEnabled ? "ON" : "OFF"}</button>{soundEnabled && <div className="spotify-theme-player"><iframe title="Shadow Impostor theme music on Spotify" src="https://open.spotify.com/embed/track/10ZgUdYwSX4MNhgDPTIIyN?utm_source=generator&theme=0" width="300" height="80" style={{border:0,borderRadius:12}} allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy" /></div>}<span className="status"><i /> LIVE SOCIAL DEDUCTION</span></div></header>
     {view === "home" || !game ? <section className="hero cinematic-home">
       <div className="cinema-scene" aria-hidden="true"><div className="scene-grid"/><div className="scene-moon"/><div className="scene-ring scene-ring-one"/><div className="scene-ring scene-ring-two"/><div className="scene-core">◈</div><span className="scene-coordinate coordinate-one">SECTOR 07 / UNKNOWN</span><span className="scene-coordinate coordinate-two">TRUST INDEX: UNSTABLE</span><span className="scene-caption">A SOCIAL DEDUCTION EXPERIENCE</span></div>
       <div className="cinema-copy"><p className="eyebrow"><span className="eyebrow-line"/> TRUST IS A LIMITED RESOURCE</p><h1>ONE OF YOU<br/><span>IS LYING.</span></h1>
