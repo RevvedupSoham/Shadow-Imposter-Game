@@ -338,3 +338,34 @@ footer { border-top-color: var(--si-line); color: var(--si-dim); }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
+
+
+/* INTERACTION LAYER · pointer light, click energy, and tactile controls */
+.shell { --pointer-x: 50vw; --pointer-y: 35vh; }
+.shell:after {
+  background-image: radial-gradient(380px circle at var(--pointer-x) var(--pointer-y), rgba(155,117,255,.075), transparent 72%), linear-gradient(transparent 0%,#b7a2ff08 50%,transparent 100%);
+}
+.cursor-orb {
+  position:fixed;z-index:1000;top:0;left:0;width:28px;height:28px;margin:-14px 0 0 -14px;
+  border:1px solid rgba(183,160,255,.72);border-radius:50%;pointer-events:none;opacity:0;
+  transform:translate3d(-100px,-100px,0);transition:width .22s cubic-bezier(.2,.8,.2,1),height .22s cubic-bezier(.2,.8,.2,1),margin .22s,border-color .22s,background .22s,opacity .18s;
+  will-change:transform;box-shadow:0 0 18px rgba(155,117,255,.16),inset 0 0 12px rgba(155,117,255,.08);
+}
+.cursor-orb>span{position:absolute;width:4px;height:4px;top:50%;left:50%;border-radius:50%;transform:translate(-50%,-50%);background:#c8b8ff;box-shadow:0 0 10px #9b75ff}
+.cursor-orb.is-interactive{width:48px;height:48px;margin:-24px 0 0 -24px;border-color:rgba(183,160,255,.95);background:rgba(155,117,255,.09);box-shadow:0 0 28px rgba(155,117,255,.28),inset 0 0 18px rgba(155,117,255,.12)}
+.cursor-orb.is-interactive>span{width:6px;height:6px;background:#fff}
+.cursor-orb.is-text{width:18px;height:28px;margin:-14px 0 0 -9px;border-radius:7px;border-color:rgba(98,230,193,.7);background:rgba(98,230,193,.05)}
+.click-ripple{position:fixed;z-index:999;width:12px;height:12px;border:1px solid rgba(183,160,255,.9);border-radius:50%;pointer-events:none;transform:translate(-50%,-50%) scale(.2);animation:click-energy .68s cubic-bezier(.1,.7,.25,1) forwards}
+.click-ripple:before,.click-ripple:after{content:"";position:absolute;inset:-7px;border:1px solid rgba(155,117,255,.3);border-radius:50%;animation:click-energy .68s .06s cubic-bezier(.1,.7,.25,1) forwards}
+.click-ripple:after{inset:-14px;animation-delay:.12s;border-color:rgba(98,230,193,.22)}
+button:not(:disabled),.features>div,.players li,.vote-card{-webkit-tap-highlight-color:transparent}
+button:not(:disabled):hover{transform:translateY(-2px)}
+.primary:not(:disabled):hover{box-shadow:0 0 0 1px rgba(183,160,255,.25),0 12px 36px rgba(155,117,255,.24),inset 0 1px rgba(255,255,255,.4)}
+.secondary:not(:disabled):hover,.join button:not(:disabled):hover{border-color:rgba(183,160,255,.6);box-shadow:0 8px 24px rgba(155,117,255,.12)}
+.vote-card:not(:disabled):hover{transform:translateY(-3px) scale(1.012)}
+.vote-card.selected{box-shadow:0 0 0 1px rgba(183,160,255,.25),0 0 28px rgba(155,117,255,.13),inset 0 0 24px rgba(155,117,255,.05)}
+.text-input:focus,.join input:focus{border-color:rgba(183,160,255,.8);background:#10111d;box-shadow:0 0 0 3px rgba(155,117,255,.1),0 0 24px rgba(155,117,255,.08)}
+@keyframes click-energy{0%{opacity:.9;transform:translate(-50%,-50%) scale(.2)}75%{opacity:.5}100%{opacity:0;transform:translate(-50%,-50%) scale(5.5)}}
+@media(pointer:fine){.cursor-orb{opacity:.78}}
+@media(pointer:coarse),(max-width:760px){.cursor-orb{display:none}.shell:after{background-image:linear-gradient(transparent 0%,#b7a2ff08 50%,transparent 100%)}.click-ripple{display:none}}
+@media(prefers-reduced-motion:reduce){.cursor-orb,.click-ripple,.click-ripple:before,.click-ripple:after{display:none!important;animation:none!important;transition:none!important}button:not(:disabled):hover,.vote-card:not(:disabled):hover{transform:none}}
