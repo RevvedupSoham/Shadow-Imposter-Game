@@ -540,3 +540,35 @@ body, #root {
 .hero, .room-view {
   scroll-margin-top: 0 !important;
 }
+
+
+/* Emergency first-paint guard: no app-level clipping or hidden/translated content. */
+html, body {
+  overflow-y: auto !important;
+  scroll-behavior: auto !important;
+}
+#root {
+  display: flow-root !important;
+  position: relative;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+.shell {
+  position: relative !important;
+  inset: auto !important;
+  transform: none !important;
+  height: auto !important;
+  min-height: 100vh !important;
+  min-height: 100dvh !important;
+  overflow: visible !important;
+  overflow-x: clip !important;
+}
+.shell > header,
+.shell > .hero,
+.shell > footer {
+  flex-shrink: 0;
+  visibility: visible !important;
+}
+.shell > .hero {
+  opacity: 1;
+}
