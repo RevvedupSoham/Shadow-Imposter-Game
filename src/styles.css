@@ -450,180 +450,82 @@ button:not(:disabled):hover{transform:translateY(-2px)}
 @media(prefers-reduced-motion:reduce){.boot-mark,.boot-loader-track i{animation:none}.boot-screen,.scene-video-layer{transition:none}}
 @media(max-width:600px){.boot-mark{width:56px;height:56px;border-radius:17px}.boot-kicker{letter-spacing:.18em}.boot-content h1{letter-spacing:.07em}.boot-loader{margin-top:34px}}
 
-/* Full-viewport cinematic layers and no accidental horizontal gaps. */
-html, body, #root { min-height: 100%; }
-html, body { width: 100%; overflow-x: clip; }
-body { min-height: 100vh; }
-.shell { min-height: 100vh; min-height: 100dvh; }
-.scene-video-layer { position: fixed; inset: 0; width: 100vw; height: 100vh; height: 100dvh; }
-.scene-video { width: 100%; height: 100%; object-fit: cover; object-position: center center; }
-.boot-screen { min-height: 100vh; min-height: 100dvh; }
-.boot-video { object-fit: cover; object-position: center center; }
-@media (max-width: 760px) { .shell { padding-bottom: max(12px, env(safe-area-inset-bottom)); } }
-
-
-/* Viewport/layout guard: content should begin at the top and grow naturally. */
-html, body, #root { min-height: 100%; }
-html, body { width: 100%; overflow-x: clip; }
-body { min-height: 100vh; min-height: 100dvh; }
-#root { min-height: 100vh; min-height: 100dvh; }
-.shell { min-height: 100vh; min-height: 100dvh; height: auto; overflow-x: clip; overflow-y: visible; }
-.hero { flex: 0 0 auto; }
-.scene-video-layer { position: fixed; inset: 0; width: 100%; height: 100vh; height: 100dvh; }
-.scene-video, .boot-video { width: 100%; height: 100%; object-fit: cover; object-position: center; }
-.boot-screen { width: 100%; height: 100vh; height: 100dvh; }
-@media (max-width: 760px) {
-  .shell { padding-bottom: max(12px, env(safe-area-inset-bottom)); }
-  .room-view { margin-top: 24px; }
+/* Consolidated viewport/layout rules.
+   Keep the app as a normal flex column: header first, active screen next,
+   footer last. The video is a fixed decorative layer and cannot affect flow. */
+html, body, #root {
+  min-height: 100%;
 }
-
-
-/* Global cursor layer: keep pointer effects visible over loading, gameplay and results. */
-.shell > .cursor-orb {
-  position: fixed !important;
-  z-index: 1101 !important;
-  pointer-events: none !important;
-}
-.click-ripple {
-  z-index: 1100 !important;
-}
-
-
-/* Keep orbital annotations readable instead of clipping their text at the scene circle. */
-.cinema-scene { overflow: visible; }
-.scene-coordinate, .scene-caption { z-index: 4; max-width: none; overflow: visible; }
-.coordinate-one { left: 3%; white-space: nowrap; }
-.coordinate-two { right: -8%; white-space: nowrap; }
-.scene-caption { bottom: 4%; white-space: nowrap; }
-@media (max-width: 760px) {
-  .coordinate-one { left: 2%; }
-  .coordinate-two { right: 0; }
-  .scene-caption { bottom: 3%; }
-}
-
-
-/* First-load composition: show the headline before the decorative planet on narrow screens. */
-@media (max-width: 760px) {
-  .hero.cinematic-home {
-    grid-template-areas: "copy" "scene" "panel" "features";
-    margin-top: 18px;
-    row-gap: 10px;
-  }
-  .cinema-copy { padding-top: 0; }
-  .cinema-copy .eyebrow { margin-bottom: 10px; }
-  .cinema-copy h1 { font-size: clamp(48px, 11vw, 72px); }
-  .cinema-copy .intro { margin-top: 10px; line-height: 1.6; }
-  .cinema-scene { width: min(300px, 76vw); }
-  .cinematic-home > .panel { margin-top: 8px; }
-}
-
-
-/* Final viewport anchor: prevent scroll anchoring and keep every screen rooted at the top. */
-html {
-  scroll-behavior: auto !important;
-  overflow-anchor: none !important;
-  scroll-padding-top: 0 !important;
+html, body {
+  width: 100%;
+  overflow-x: clip;
+  overflow-y: auto;
+  scroll-behavior: auto;
 }
 body, #root {
-  overflow-anchor: none !important;
-}
-.shell {
-  height: auto !important;
-  min-height: 100vh !important;
-  min-height: 100dvh !important;
-  overflow-x: clip !important;
-  overflow-y: visible !important;
-}
-.shell > header {
-  flex: 0 0 auto;
-}
-.hero, .room-view {
-  scroll-margin-top: 0 !important;
-}
-
-
-/* Emergency first-paint guard: no app-level clipping or hidden/translated content. */
-html, body {
-  overflow-y: auto !important;
-  scroll-behavior: auto !important;
-}
-#root {
-  display: flow-root !important;
-  position: relative;
   min-height: 100vh;
   min-height: 100dvh;
+  overflow-anchor: none;
+}
+#root {
+  display: flow-root;
+  position: relative;
 }
 .shell {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch;
   position: relative !important;
   inset: auto !important;
   transform: none !important;
-  height: auto !important;
+  width: 100%;
   min-height: 100vh !important;
   min-height: 100dvh !important;
-  overflow: visible !important;
+  height: auto !important;
+  padding: 0 7vw;
   overflow-x: clip !important;
-}
-.shell > header,
-.shell > .hero,
-.shell > footer {
-  flex-shrink: 0;
-  visibility: visible !important;
-}
-.shell > .hero {
-  opacity: 1;
-}
-
-
-/* Explicit cinematic stacking: background video behind every app screen. */
-.shell {
+  overflow-y: visible !important;
   background: transparent !important;
   isolation: isolate;
 }
 .shell > .scene-video-layer {
   position: fixed !important;
   inset: 0 !important;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
   z-index: 0 !important;
   pointer-events: none !important;
 }
+.shell > .scene-video-layer .scene-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
 .shell > *:not(.scene-video-layer):not(.boot-screen) {
   position: relative;
-  z-index: 2 !important;
+  z-index: 2;
 }
 .shell > .boot-screen {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
   z-index: 1000 !important;
 }
-.shell > .cursor-orb {
-  z-index: 1101 !important;
-}
-
-
-/* Fix first viewport composition: keep app content in normal document flow.
-   The cinematic background stays fixed, while the header and active screen start
-   immediately in the viewport instead of being spaced by the footer flex layout. */
-.shell {
-  display: block !important;
-  min-height: 100vh !important;
-  min-height: 100dvh !important;
-  padding-top: 0 !important;
-}
 .shell > header {
+  flex: 0 0 76px;
   height: 76px !important;
   margin: 0 !important;
 }
-.shell > .hero.cinematic-home {
-  margin-top: clamp(18px, 2.4vw, 32px) !important;
-  margin-bottom: 32px !important;
+.shell > .hero {
+  flex: 0 0 auto;
+  visibility: visible !important;
+  opacity: 1 !important;
+  scroll-margin-top: 0;
 }
-.shell > .hero.room-view {
-  margin: clamp(18px, 2.4vw, 32px) auto 32px !important;
-}
-.shell > footer {
-  margin-top: 24px !important;
-}
-
-
-/* Content visibility recovery: keep the home hero and its interactive controls
-   above the fixed cinematic video layer on first load. */
 .shell > .hero.cinematic-home {
   display: grid !important;
   position: relative !important;
@@ -631,6 +533,7 @@ html, body {
   visibility: visible !important;
   opacity: 1 !important;
   transform: none !important;
+  margin: clamp(18px, 2.4vw, 32px) auto 32px !important;
 }
 .shell > .hero.cinematic-home > .cinema-copy,
 .shell > .hero.cinematic-home > .cinema-scene,
@@ -651,4 +554,47 @@ html, body {
 .shell > .hero.cinematic-home .panel,
 .shell > .hero.cinematic-home .features {
   color: #f3f4fa;
+}
+.shell > .hero.room-view {
+  margin: clamp(18px, 2.4vw, 32px) auto 32px !important;
+}
+.shell > footer {
+  flex: 0 0 auto;
+  margin-top: auto !important;
+}
+.shell > .cursor-orb {
+  position: fixed !important;
+  z-index: 1101 !important;
+  pointer-events: none !important;
+}
+.click-ripple {
+  z-index: 1100 !important;
+}
+.cinema-scene {
+  overflow: visible;
+}
+.scene-coordinate, .scene-caption {
+  z-index: 4;
+  max-width: none;
+  overflow: visible;
+}
+.coordinate-one { left: 3%; white-space: nowrap; }
+.coordinate-two { right: -8%; white-space: nowrap; }
+.scene-caption { bottom: 4%; white-space: nowrap; }
+@media (max-width: 760px) {
+  .shell { padding: 0 20px max(12px, env(safe-area-inset-bottom)); }
+  .shell > .hero.cinematic-home {
+    grid-template-areas: "copy" "scene" "panel" "features";
+    margin-top: 18px !important;
+    row-gap: 10px;
+  }
+  .cinema-copy { padding-top: 0; }
+  .cinema-copy .eyebrow { margin-bottom: 10px; }
+  .cinema-copy h1 { font-size: clamp(48px, 11vw, 72px); }
+  .cinema-copy .intro { margin-top: 10px; line-height: 1.6; }
+  .cinema-scene { width: min(300px, 76vw); }
+  .cinematic-home > .panel { margin-top: 8px; }
+  .coordinate-one { left: 2%; }
+  .coordinate-two { right: 0; }
+  .scene-caption { bottom: 3%; }
 }
