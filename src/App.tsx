@@ -38,7 +38,7 @@ export default function App() {
   const [voteSubmitted, setVoteSubmitted] = useState(false);
   const [roleVisible, setRoleVisible] = useState(false);
   const [copiedRoomCode, setCopiedRoomCode] = useState(false);
-  const [soundEnabled, setSoundEnabled] = useState(false);
+  const [soundEnabled] = useState(false);
   const previousPhaseRef = useRef<string | undefined>(undefined);
   const [stats, setStats] = useState<{games_played:number;crew_wins:number;impostor_wins:number}|undefined>();
   const [clockNow, setClockNow] = useState(Date.now());
