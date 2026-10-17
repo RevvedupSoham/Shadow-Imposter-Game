@@ -595,3 +595,28 @@ html, body {
 .shell > .cursor-orb {
   z-index: 1101 !important;
 }
+
+
+/* Fix first viewport composition: keep app content in normal document flow.
+   The cinematic background stays fixed, while the header and active screen start
+   immediately in the viewport instead of being spaced by the footer flex layout. */
+.shell {
+  display: block !important;
+  min-height: 100vh !important;
+  min-height: 100dvh !important;
+  padding-top: 0 !important;
+}
+.shell > header {
+  height: 76px !important;
+  margin: 0 !important;
+}
+.shell > .hero.cinematic-home {
+  margin-top: clamp(18px, 2.4vw, 32px) !important;
+  margin-bottom: 32px !important;
+}
+.shell > .hero.room-view {
+  margin: clamp(18px, 2.4vw, 32px) auto 32px !important;
+}
+.shell > footer {
+  margin-top: 24px !important;
+}
