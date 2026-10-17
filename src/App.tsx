@@ -178,7 +178,7 @@ export default function App() {
   const playerTotal = game?.players.length ?? 0;
   const phaseSeconds = phaseDuration(phase);
   const secondsLeft = secondsRemaining(phase, game?.room.phase_started_at, clockNow);
-  const phaseProgress = phaseDuration ? Math.min(100, Math.max(0, ((phaseSeconds - secondsLeft) / phaseSeconds) * 100)) : 0;
+  const phaseProgress = phaseSeconds > 0 ? Math.min(100, Math.max(0, ((phaseSeconds - secondsLeft) / phaseSeconds) * 100)) : 0;
   const waitingTitle = phase === "lobby" ? "The crew is assembling" : phase === "clue" ? "The clues are taking shape" : phase === "discussion" ? "Read between the lines" : phase === "voting" ? "The votes are being sealed" : phase === "guess" ? "One last chance" : phase === "results" ? "The truth is out" : "The shadows are moving";
   return <main ref={shellRef} className={busy ? "shell is-busy" : "shell"}>
     <div className="cursor-orb" ref={cursorRef} aria-hidden="true"><span /></div>
