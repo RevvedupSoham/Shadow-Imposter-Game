@@ -77,24 +77,50 @@ export default function App() {
   }, [game?.room.code]);
 
   useEffect(() => {
-    // Prevent the browser restoring a stale scroll offset that opens on empty space.
+    // Never let browser history, late video/font layout, or scroll anchoring open the app halfway down.
     const previousRestoration = window.history.scrollRestoration;
     window.history.scrollRestoration = "manual";
-    window.scrollTo(0, 0);
-    const resetFrame = window.requestAnimationFrame(() => window.scrollTo(0, 0));
+    let frameOne = 0;
+    let frameTwo = 0;
+    let delayedReset = 0;
+    const resetScroll = () => {
+      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+      frameOne = window.requestAnimationFrame(() => {
+        window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+        frameTwo = window.requestAnimationFrame(() => window.scrollTo({ top: 0, left: 0, behavior: "auto" }));
+      });
+    };
+    resetScroll();
+    window.addEventListener("pageshow", resetScroll);
+    window.addEventListener("load", resetScroll);
     return () => {
-      window.cancelAnimationFrame(resetFrame);
+      window.cancelAnimationFrame(frameOne);
+      window.cancelAnimationFrame(frameTwo);
+      window.clearTimeout(delayedReset);
+      window.removeEventListener("pageshow", resetScroll);
+      window.removeEventListener("load", resetScroll);
       window.history.scrollRestoration = previousRestoration;
     };
   }, []);
 
   useEffect(() => {
-    // Once the cinematic boot overlay leaves, re-anchor the actual page content at the top.
+    // Re-anchor after boot and whenever the visible game screen changes.
     if (loadingScreen) return;
-    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
-    const frame = window.requestAnimationFrame(() => window.scrollTo({ top: 0, left: 0, behavior: "auto" }));
-    return () => window.cancelAnimationFrame(frame);
-  }, [loadingScreen]);
+    let frameOne = 0;
+    let frameTwo = 0;
+    frameOne = window.requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+      frameTwo = window.requestAnimationFrame(() => window.scrollTo({ top: 0, left: 0, behavior: "auto" }));
+    });
+    return () => {
+      window.cancelAnimationFrame(frameOne);
+      window.cancelAnimationFrame(frameTwo);
+    };
+  }, [loadingScreen, view, game?.room.phase]);
 
   useEffect(() => {
     const minimum = window.setTimeout(() => setMinimumLoadingElapsed(true), 6800);
