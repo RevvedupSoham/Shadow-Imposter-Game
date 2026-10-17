@@ -25,6 +25,9 @@ export default function App() {
   const [guess, setGuess] = useState("");
   const [target, setTarget] = useState("");
   const [voteSubmitted, setVoteSubmitted] = useState(false);
+  const [roleVisible, setRoleVisible] = useState(false);
+  const [copiedRoomCode, setCopiedRoomCode] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(false);
   const [stats, setStats] = useState<{games_played:number;crew_wins:number;impostor_wins:number}|undefined>();
   const [clockNow, setClockNow] = useState(Date.now());
   const shellRef = useRef<HTMLElement>(null);
@@ -99,7 +102,39 @@ export default function App() {
   useEffect(() => {
     setVoteSubmitted(false);
     setTarget("");
+    setRoleVisible(false);
   }, [game?.room.code, game?.room.phase, game?.room.round]);
+
+  const copyRoomCode = async () => {
+    if (!game?.room.code) return;
+    try {
+      await navigator.clipboard.writeText(game.room.code);
+      setCopiedRoomCode(true);
+      window.setTimeout(() => setCopiedRoomCode(false), 1800);
+    } catch {
+      setError("Copy was blocked by your browser. Select the room code and copy it manually.");
+    }
+  };
+
+  const playFeedback = (kind: "reveal" | "confirm") => {
+    if (!soundEnabled || typeof window === "undefined") return;
+    try {
+      const AudioContextClass = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      if (!AudioContextClass) return;
+      const context = new AudioContextClass();
+      const oscillator = context.createOscillator();
+      const gain = context.createGain();
+      oscillator.type = "sine";
+      oscillator.frequency.setValueAtTime(kind === "reveal" ? 196 : 520, context.currentTime);
+      oscillator.frequency.exponentialRampToValueAtTime(kind === "reveal" ? 392 : 680, context.currentTime + 0.12);
+      gain.gain.setValueAtTime(0.0001, context.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.045, context.currentTime + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + 0.18);
+      oscillator.connect(gain); gain.connect(context.destination);
+      oscillator.start(); oscillator.stop(context.currentTime + 0.19);
+      oscillator.onended = () => { void context.close(); };
+    } catch { /* sound is an optional enhancement */ }
+  };
 
   useEffect(() => {
     if (!game?.room.code) return;
@@ -140,7 +175,7 @@ export default function App() {
   return <main ref={shellRef} className={busy ? "shell is-busy" : "shell"}>
     <div className="cursor-orb" ref={cursorRef} aria-hidden="true"><span /></div>
     <div className="glow glow-one" /><div className="glow glow-two" />
-    <header><span className="mark">◈</span><span>SHADOW<span className="accent"> IMPOSTOR</span></span><span className="status"><i /> LIVE SOCIAL DEDUCTION</span></header>
+    <header><span className="mark">◈</span><span>SHADOW<span className="accent"> IMPOSTOR</span></span><div className="header-actions"><button className="sound-toggle" type="button" aria-pressed={soundEnabled} onClick={() => setSoundEnabled(value => !value)} title={soundEnabled ? "Mute interface sounds" : "Enable interface sounds"}><span>{soundEnabled ? "♫" : "♪"}</span> SOUND {soundEnabled ? "ON" : "OFF"}</button><span className="status"><i /> LIVE SOCIAL DEDUCTION</span></div></header>
     {view === "home" || !game ? <section className="hero cinematic-home">
       <div className="cinema-scene" aria-hidden="true"><div className="scene-grid"/><div className="scene-moon"/><div className="scene-ring scene-ring-one"/><div className="scene-ring scene-ring-two"/><div className="scene-core">◈</div><span className="scene-coordinate coordinate-one">SECTOR 07 / UNKNOWN</span><span className="scene-coordinate coordinate-two">TRUST INDEX: UNSTABLE</span><span className="scene-caption">A SOCIAL DEDUCTION EXPERIENCE</span></div>
       <div className="cinema-copy"><p className="eyebrow"><span className="eyebrow-line"/> TRUST IS A LIMITED RESOURCE</p><h1>ONE OF YOU<br/><span>IS LYING.</span></h1>
@@ -157,11 +192,11 @@ export default function App() {
       <h1>{phase === "lobby" ? "Gather your crew." : phase === "results" ? "The shadows settle." : phase === "guess" ? "One final guess." : phase === "voting" ? "Choose carefully." : phase === "discussion" ? "Read the room." : "Your word is your weapon."}</h1>
       <p className="intro">{phase === "lobby" ? "Share the code. You need 4 to 8 players to begin." : "Room updates live. Keep your role and secret word private."}</p>
       <div className="panel">
-        <div className="room-code">{game.room.code}</div>
+        <button className="room-code room-code-button" type="button" onClick={() => void copyRoomCode()} aria-label="Copy room code"><span className="room-code-label">ROOM CODE</span><strong>{game.room.code}</strong><span className="room-code-copy">{copiedRoomCode ? "✓ COPIED" : "▢ COPY CODE"}</span></button>
         <div className="phase-banner"><div className="phase-orb"><span>◈</span></div><div className="phase-copy"><p className="eyebrow">CURRENT PHASE</p><h2>{waitingTitle}</h2><p>{phase === "lobby" ? "Invite your crew. The game begins when the host is ready." : phase === "clue" ? `${submittedClues} of ${playerTotal} players have submitted clues.` : phase === "voting" ? "Choose carefully. Votes stay hidden until the reveal." : phase === "discussion" ? "Compare clues and look for the odd one out." : phase === "guess" ? "Can the impostor name the crew's word?" : phase === "results" ? "The round is complete. Review the outcome below." : "Waiting for the room to update."}</p></div><div className="live-pulse"><i /> LIVE</div></div>{phaseDuration > 0 && <div className="phase-timer" aria-label={`${secondsLeft} seconds remaining`}><div className="timer-top"><span>TIME REMAINING</span><strong className={secondsLeft <= 10 ? "timer-urgent" : ""}>{String(Math.floor(secondsLeft/60)).padStart(2,"0")}:{String(secondsLeft%60).padStart(2,"0")}</strong></div><div className="timer-track"><span style={{width:`${phaseProgress}%`}} /></div></div>}
         <div className="panel-head"><span className="mini-icon">✦</span><div><h2>{game.you.name}{game.you.is_host ? " · HOST" : ""}</h2><p>{game.room.player_count} players · {phase?.toUpperCase()}</p></div></div>
-        {phase === "lobby" && <><h2>Players</h2><ul className="players">{game.players.map(p=><li key={p.player_id}><span>{p.name}{p.is_host?" · HOST":""}</span><span>{p.alive?"●":"○"}</span></li>)}</ul><button className="primary" disabled={busy||!game.you.is_host||game.room.player_count<4} onClick={()=>void act({action:"start_game",code:game.room.code,token})}>{busy ? "Launching game..." : game.you.is_host ? (game.room.player_count<4?"Waiting for 4 players":"Start game"):"Waiting for host"} <span>↗</span></button></>}
-        {phase !== "lobby" && <div className="secret"><p className="eyebrow">YOUR ROLE</p><h2>{game.you.role?.toUpperCase() ?? "UNKNOWN"}</h2><p className="word">{game.you.word ?? "Word hidden"}</p><p className="fine">Keep this word secret. Impostors receive a decoy word.</p></div>}
+        {phase === "lobby" && <><div className="lobby-progress"><div><span>CREW ASSEMBLY</span><strong>{playerTotal}/8</strong></div><div className="lobby-progress-track"><span style={{width:`${Math.min(100, playerTotal/8*100)}%`}} /></div><small>{playerTotal < 4 ? `${4-playerTotal} more ${4-playerTotal===1?"player":"players"} needed to unlock launch` : playerTotal === 8 ? "Crew full. The game is ready." : "Minimum reached. More suspects can still join."}</small></div><h2>Players</h2><ul className="players">{game.players.map(p=><li key={p.player_id}><span>{p.name}{p.is_host?" · HOST":""}</span><span>{p.alive?"●":"○"}</span></li>)}</ul><button className="primary launch-button" disabled={busy||!game.you.is_host||game.room.player_count<4} onClick={()=>{playFeedback("confirm");void act({action:"start_game",code:game.room.code,token})}}>{busy ? "Launching game..." : game.you.is_host ? (game.room.player_count<4?"Waiting for 4 players":"Start game"):"Waiting for host"} <span>↗</span></button></>}
+        {phase !== "lobby" && <div className={`secret ${roleVisible ? "secret-revealed" : "secret-concealed"}`}><div className="secret-card-top"><p className="eyebrow">PERSONAL DOSSIER · ONLY YOU</p><span className="secret-lock">{roleVisible ? "ACCESS GRANTED" : "ENCRYPTED"}</span></div>{roleVisible ? <div className="role-reveal-content" key={`${game.room.round}-${game.you.role}`}><p className={`role-stamp ${game.you.role === "impostor" ? "role-stamp-impostor" : ""}`}>{game.you.role === "impostor" ? "☠" : "◈"}</p><h2>{game.you.role?.toUpperCase() ?? "UNKNOWN"}</h2><p className="word">{game.you.word ?? "Word hidden"}</p><p className="fine">Keep this word secret. Impostors receive a decoy word.</p></div> : <div className="secret-locked-content"><div className="secret-locked-glyph">◈</div><h2>YOUR IDENTITY IS SEALED</h2><p>Your role and word are hidden. Make sure nobody is looking before you reveal them.</p></div>}<button className="secret-reveal-button" type="button" onClick={() => { setRoleVisible(value => !value); if (!roleVisible) playFeedback("reveal"); }}>{roleVisible ? "Hide my role" : "Reveal my role"}<span>{roleVisible ? "◉" : "◎"}</span></button></div>}
         {phase === "clue" && game.you.alive && !game.players.find(p=>p.player_id===game.you.player_id)?.has_clued && <div className="action-form"><label>YOUR CLUE</label><input className="text-input" maxLength={120} placeholder="Give a subtle clue..." value={clue} onChange={e=>setClue(e.target.value)}/><button className="primary" disabled={busy||!clue.trim()} onClick={()=>void sendClue()}>{busy ? "Sending clue..." : "Submit clue"} <span>↗</span></button></div>}
         {phase === "clue" && game.you.is_host && <button className="secondary" disabled={busy} onClick={()=>void act({action:"begin_voting",code:game.room.code,token})}>Move to discussion / voting</button>}
         {(phase === "discussion" || phase === "voting") && <div className="clues"><h2>Clues from the crew</h2>{game.players.filter(p=>p.clue).map(p=><p key={p.player_id}><strong>{p.name}:</strong> {p.clue}</p>)}{game.players.every(p=>!p.clue)&&<p className="muted">No clues submitted yet.</p>}</div>}
