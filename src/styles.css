@@ -450,160 +450,131 @@ button:not(:disabled):hover{transform:translateY(-2px)}
 @media(prefers-reduced-motion:reduce){.boot-mark,.boot-loader-track i{animation:none}.boot-screen,.scene-video-layer{transition:none}}
 @media(max-width:600px){.boot-mark{width:56px;height:56px;border-radius:17px}.boot-kicker{letter-spacing:.18em}.boot-content h1{letter-spacing:.07em}.boot-loader{margin-top:34px}}
 
-/* Consolidated viewport/layout rules.
-   Keep the app as a normal flex column: header first, active screen next,
-   footer last. The video is a fixed decorative layer and cannot affect flow. */
-html, body, #root {
-  min-height: 100%;
-}
-html, body {
-  width: 100%;
-  overflow-x: clip;
-  overflow-y: auto;
-  scroll-behavior: auto;
-}
-body, #root {
+/* APP LAYOUT SYSTEM
+   One document-flow definition: fixed ambience, then header, active content, footer.
+   Keep this block as the single source of truth for page positioning. */
+:root { color-scheme: dark; }
+html, body, #root { width: 100%; min-height: 100%; margin: 0; }
+html { overflow-x: clip; }
+body {
+  min-width: 320px;
   min-height: 100vh;
   min-height: 100dvh;
-  overflow-anchor: none;
+  overflow-x: clip;
+  overflow-y: auto;
+  padding: 0;
 }
-#root {
-  display: flow-root;
-  position: relative;
-}
+#root { min-height: 100vh; min-height: 100dvh; }
 .shell {
-  display: flex !important;
-  flex-direction: column !important;
+  display: flex;
+  flex-direction: column;
   align-items: stretch;
-  position: relative !important;
-  inset: auto !important;
-  transform: none !important;
+  position: relative;
+  inset: auto;
   width: 100%;
-  min-height: 100vh !important;
-  min-height: 100dvh !important;
-  height: auto !important;
-  padding: 0 7vw;
-  overflow-x: clip !important;
-  overflow-y: visible !important;
-  background: transparent !important;
+  min-height: 100vh;
+  min-height: 100dvh;
+  height: auto;
+  margin: 0;
+  padding: 0 clamp(20px, 6vw, 96px);
+  overflow: clip visible;
   isolation: isolate;
+  transform: none;
+  background: transparent;
 }
 .shell > .scene-video-layer {
-  position: fixed !important;
-  inset: 0 !important;
-  width: 100vw;
-  height: 100vh;
-  height: 100dvh;
-  z-index: 0 !important;
-  pointer-events: none !important;
-}
-.shell > .scene-video-layer .scene-video {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center;
-}
-.shell > *:not(.scene-video-layer):not(.boot-screen) {
-  position: relative;
-  z-index: 2;
-}
-.shell > .boot-screen {
   position: fixed;
   inset: 0;
   width: 100%;
   height: 100vh;
   height: 100dvh;
-  z-index: 1000 !important;
+  z-index: -1;
+  pointer-events: none;
 }
+.shell > .scene-video-layer .scene-video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+.shell > .cursor-orb { position: fixed; z-index: 1101; pointer-events: none; }
+.shell > .boot-screen { position: fixed; inset: 0; width: 100%; height: 100vh; height: 100dvh; z-index: 1000; }
 .shell > header {
+  order: 0;
+  position: relative;
+  z-index: 2;
   flex: 0 0 76px;
-  height: 76px !important;
-  margin: 0 !important;
+  width: 100%;
+  height: 76px;
+  min-height: 76px;
+  margin: 0;
+  padding: 0;
 }
 .shell > .hero {
+  order: 1;
+  position: relative;
+  z-index: 1;
   flex: 0 0 auto;
-  visibility: visible !important;
-  opacity: 1 !important;
+  visibility: visible;
+  opacity: 1;
   scroll-margin-top: 0;
 }
 .shell > .hero.cinematic-home {
-  display: grid !important;
-  position: relative !important;
-  z-index: 3 !important;
-  visibility: visible !important;
-  opacity: 1 !important;
-  transform: none !important;
-  margin: clamp(18px, 2.4vw, 32px) auto 32px !important;
+  display: grid;
+  position: relative;
+  z-index: 1;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, .92fr);
+  grid-template-areas: "copy scene" "panel panel" "features features";
+  align-items: center;
+  column-gap: clamp(28px, 6vw, 90px);
+  width: min(1120px, 100%);
+  margin: clamp(24px, 4vw, 52px) auto 40px;
+  padding: 0;
+  transform: none;
 }
+.shell > .hero.cinematic-home > .cinema-copy { grid-area: copy; }
+.shell > .hero.cinematic-home > .cinema-scene { grid-area: scene; }
+.shell > .hero.cinematic-home > .panel { grid-area: panel; }
+.shell > .hero.cinematic-home > .features { grid-area: features; }
 .shell > .hero.cinematic-home > .cinema-copy,
 .shell > .hero.cinematic-home > .cinema-scene,
 .shell > .hero.cinematic-home > .panel,
-.shell > .hero.cinematic-home > .features {
-  position: relative !important;
-  z-index: 3 !important;
-  visibility: visible !important;
-  opacity: 1 !important;
-}
-.shell > .hero.cinematic-home .cinema-copy *,
-.shell > .hero.cinematic-home .panel *,
-.shell > .hero.cinematic-home .features * {
-  visibility: visible !important;
-}
-.shell > .hero.cinematic-home .cinema-copy h1,
-.shell > .hero.cinematic-home .cinema-copy .intro,
-.shell > .hero.cinematic-home .panel,
-.shell > .hero.cinematic-home .features {
-  color: #f3f4fa;
-}
+.shell > .hero.cinematic-home > .features { min-width: 0; }
 .shell > .hero.room-view {
-  margin: clamp(18px, 2.4vw, 32px) auto 32px !important;
+  width: min(680px, 100%);
+  margin: clamp(24px, 4vw, 52px) auto 40px;
 }
 .shell > footer {
-  flex: 0 0 auto;
-  margin-top: auto !important;
+  order: 2;
+  position: relative;
+  z-index: 1;
+  flex: 0 0 58px;
+  width: 100%;
+  min-height: 58px;
+  height: 58px;
+  margin: auto 0 0;
 }
-.shell > .cursor-orb {
-  position: fixed !important;
-  z-index: 1101 !important;
-  pointer-events: none !important;
-}
-.click-ripple {
-  z-index: 1100 !important;
-}
-.cinema-scene {
-  overflow: visible;
-}
-.scene-coordinate, .scene-caption {
-  z-index: 4;
-  max-width: none;
-  overflow: visible;
-}
-.coordinate-one { left: 3%; white-space: nowrap; }
-.coordinate-two { right: -8%; white-space: nowrap; }
-.scene-caption { bottom: 4%; white-space: nowrap; }
 @media (max-width: 760px) {
   .shell { padding: 0 20px max(12px, env(safe-area-inset-bottom)); }
   .shell > .hero.cinematic-home {
+    grid-template-columns: minmax(0, 1fr);
     grid-template-areas: "copy" "scene" "panel" "features";
-    margin-top: 18px !important;
-    row-gap: 10px;
+    row-gap: 12px;
+    margin-top: 18px;
   }
-  .cinema-copy { padding-top: 0; }
-  .cinema-copy .eyebrow { margin-bottom: 10px; }
-  .cinema-copy h1 { font-size: clamp(48px, 11vw, 72px); }
-  .cinema-copy .intro { margin-top: 10px; line-height: 1.6; }
-  .cinema-scene { width: min(300px, 76vw); }
-  .cinematic-home > .panel { margin-top: 8px; }
-  .coordinate-one { left: 2%; }
-  .coordinate-two { right: 0; }
-  .scene-caption { bottom: 3%; }
+  .shell > .hero.cinematic-home > .cinema-copy { padding: 0 0 8px; }
+  .shell > .hero.cinematic-home > .cinema-scene {
+    width: min(360px, 100%);
+    min-height: 0;
+    aspect-ratio: 1;
+    justify-self: center;
+  }
+  .shell > .hero.cinematic-home > .panel { margin-top: 8px; }
+  .coordinate-one { left: 3%; }
+  .coordinate-two { right: 3%; }
+  .scene-caption { bottom: 4%; }
 }
-
-/* Keep the app chrome pinned to the top of the document flow. The cinematic
-   background is a fixed layer and must never create a blank row above the header. */
-html, body, #root { margin: 0; padding-top: 0; }
-.shell { padding-top: 0 !important; }
-.shell > .scene-video-layer { top: 0 !important; }
-.shell > header { order: 0; margin-block-start: 0 !important; }
-.shell > .hero { order: 1; }
-.shell > footer { order: 2; }
+@media (prefers-reduced-motion: reduce) {
+  .shell, .shell > .hero { animation: none; }
+}
