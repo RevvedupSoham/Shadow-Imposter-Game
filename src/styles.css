@@ -500,3 +500,19 @@ body { min-height: 100vh; min-height: 100dvh; }
   .coordinate-two { right: 0; }
   .scene-caption { bottom: 3%; }
 }
+
+
+/* First-load composition: show the headline before the decorative planet on narrow screens. */
+@media (max-width: 760px) {
+  .hero.cinematic-home {
+    grid-template-areas: "copy" "scene" "panel" "features";
+    margin-top: 18px;
+    row-gap: 10px;
+  }
+  .cinema-copy { padding-top: 0; }
+  .cinema-copy .eyebrow { margin-bottom: 10px; }
+  .cinema-copy h1 { font-size: clamp(48px, 11vw, 72px); }
+  .cinema-copy .intro { margin-top: 10px; line-height: 1.6; }
+  .cinema-scene { width: min(300px, 76vw); }
+  .cinematic-home > .panel { margin-top: 8px; }
+}
