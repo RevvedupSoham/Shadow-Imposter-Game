@@ -136,7 +136,7 @@ export default function App() {
       oscillator.connect(gain); gain.connect(context.destination);
       oscillator.start(); oscillator.stop(context.currentTime + 0.19);
       oscillator.onended = () => { void context.close(); };
-    } catch { /* sound is an optional enhancement */ }
+    } catch { setError("Could not play sound. Check your browser audio settings."); }
   };
 
   useEffect(() => {
