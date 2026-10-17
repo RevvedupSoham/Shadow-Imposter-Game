@@ -369,3 +369,47 @@ button:not(:disabled):hover{transform:translateY(-2px)}
 @media(pointer:fine){.cursor-orb{opacity:.78}}
 @media(pointer:coarse),(max-width:760px){.cursor-orb{display:none}.shell:after{background-image:linear-gradient(transparent 0%,#b7a2ff08 50%,transparent 100%)}.click-ripple{display:none}}
 @media(prefers-reduced-motion:reduce){.cursor-orb,.click-ripple,.click-ripple:before,.click-ripple:after{display:none!important;animation:none!important;transition:none!important}button:not(:disabled):hover,.vote-card:not(:disabled):hover{transform:none}}
+
+
+/* Immersive upgrade: dossier, lobby telemetry, sound control and cinematic transitions */
+.header-actions{display:flex;align-items:center;gap:16px}
+.sound-toggle{display:inline-flex;align-items:center;gap:7px;padding:8px 10px;border:1px solid #ffffff18;border-radius:999px;background:#ffffff05;color:#a9abc0;font:9px "DM Mono",monospace;letter-spacing:.09em;cursor:pointer;transition:background .2s,border-color .2s,color .2s}
+.sound-toggle span{font-size:14px;color:#b9a7ff}
+.sound-toggle:hover,.sound-toggle[aria-pressed=true]{border-color:#a18aff70;background:#a18aff12;color:#e9e2ff}
+.room-code-button{width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;text-align:left;cursor:pointer;font:inherit;transition:border-color .22s,background .22s,transform .22s;position:relative}
+.room-code-button:hover{border-color:#a18aff80;background:linear-gradient(100deg,#a18aff12,#ffffff04);transform:translateY(-1px)}
+.room-code-button:focus-visible,.sound-toggle:focus-visible,.secret-reveal-button:focus-visible{outline:2px solid #b6a3ff;outline-offset:3px}
+.room-code-label{font:9px "DM Mono",monospace;letter-spacing:.12em;color:#8f91a8}
+.room-code-button strong{font:800 24px "DM Mono",monospace;letter-spacing:.18em;color:#e5dcff;text-shadow:0 0 22px #a18aff2b}
+.room-code-copy{font:9px "DM Mono",monospace;letter-spacing:.06em;color:#a18aff;white-space:nowrap}
+.lobby-progress{padding:15px;margin:16px 0 20px;border:1px solid #a18aff25;border-radius:10px;background:linear-gradient(135deg,#a18aff0c,#ffffff02)}
+.lobby-progress>div:first-child{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
+.lobby-progress>div:first-child span{font:9px "DM Mono",monospace;letter-spacing:.12em;color:#a7a4c0}
+.lobby-progress>div:first-child strong{font:700 13px "DM Mono",monospace;color:#d7cbff}
+.lobby-progress-track{height:4px;border-radius:99px;background:#ffffff10;overflow:hidden}
+.lobby-progress-track span{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#6c51d8,#c5a8ff);box-shadow:0 0 15px #a18aff75;transition:width .45s cubic-bezier(.2,.8,.2,1)}
+.lobby-progress small{display:block;margin-top:10px;color:#898ba2;font-size:10px;line-height:1.5}
+.secret{position:relative;overflow:hidden;border-color:#a18aff35;background:radial-gradient(ellipse at 50% 0%,#a18aff12,transparent 60%),linear-gradient(155deg,#151522,#0d0e16)}
+.secret:before{content:"";position:absolute;inset:0 0 auto;height:1px;background:linear-gradient(90deg,transparent,#a18aff85,transparent)}
+.secret-card-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.secret-card-top .eyebrow{margin:0}
+.secret-lock{font:8px "DM Mono",monospace;letter-spacing:.09em;color:#a18aff;padding:5px 7px;border:1px solid #a18aff30;border-radius:5px}
+.secret-concealed .secret-lock{color:#9c9eb1;border-color:#ffffff1c}
+.secret-locked-content{padding:24px 8px 18px;text-align:center}
+.secret-locked-glyph{display:grid;place-items:center;width:76px;height:76px;margin:0 auto 17px;border:1px solid #a18aff45;border-radius:50%;color:#b5a2ff;font-size:34px;background:radial-gradient(circle,#a18aff18,#a18aff02);box-shadow:0 0 42px #a18aff12;animation:dossier-breathe 3.8s ease-in-out infinite}
+.secret-locked-content h2{font-size:15px;letter-spacing:.08em;color:#e3dcfa}
+.secret-locked-content p{max-width:310px;margin:10px auto 0;color:#9698ad;font-size:11px;line-height:1.7}
+.secret-reveal-button{width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 15px;border:1px solid #a18aff50;border-radius:8px;background:linear-gradient(100deg,#a18aff1c,#a18aff08);color:#e0d6ff;font:700 11px Manrope;cursor:pointer;transition:background .2s,border-color .2s,transform .2s}
+.secret-reveal-button span{font-size:16px;color:#c3b2ff}
+.secret-reveal-button:hover{background:#a18aff24;border-color:#bba9ff;transform:translateY(-1px)}
+.role-reveal-content{padding:20px 8px 18px;text-align:center;animation:dossier-reveal .48s cubic-bezier(.16,1,.3,1) both}
+.role-reveal-content h2{font-size:clamp(23px,5vw,30px);letter-spacing:.1em;color:#c7b8ff;margin:8px 0}
+.role-stamp{display:grid;place-items:center;width:58px;height:58px;margin:0 auto 12px;border-radius:50%;border:1px solid #a18aff55;color:#c9baff;background:#a18aff13;box-shadow:0 0 32px #a18aff1a;font-size:25px}
+.role-stamp-impostor{color:#ff829a;border-color:#ff668855;background:#ff668812;box-shadow:0 0 35px #ff596b18}
+.role-reveal-content:has(.role-stamp-impostor) h2{color:#ff829a}
+.role-reveal-content .word{font-size:clamp(22px,5vw,30px);letter-spacing:.12em;overflow-wrap:anywhere}
+@keyframes dossier-breathe{0%,100%{transform:scale(1);box-shadow:0 0 28px #a18aff10}50%{transform:scale(1.035);box-shadow:0 0 42px #a18aff22}}
+@keyframes dossier-reveal{0%{opacity:0;transform:translateY(10px) scale(.97);filter:blur(5px)}100%{opacity:1;transform:translateY(0) scale(1);filter:blur(0)}}
+@media(max-width:600px){header{gap:10px}.header-actions{gap:8px}.sound-toggle{padding:7px;font-size:8px}.status{font-size:8px}.room-code-button strong{font-size:20px}.room-code-copy{font-size:8px}}
+@media(max-width:390px){.header-actions{gap:6px}.status{max-width:90px;line-height:1.4}.room-code-button{gap:7px}.room-code-button strong{font-size:17px;letter-spacing:.1em}.room-code-label,.room-code-copy{font-size:7px}}
+@media(prefers-reduced-motion:reduce){.secret-locked-glyph,.role-reveal-content{animation:none!important}.lobby-progress-track span,.secret-reveal-button,.room-code-button{transition:none}}
