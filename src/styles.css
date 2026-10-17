@@ -150,3 +150,76 @@ footer{position:relative;z-index:1;color:#6f6d7e}
 @media(max-width:760px){.hero.cinematic-home{grid-template-columns:minmax(0,1fr);grid-template-areas:"scene" "copy" "panel" "features";margin-top:30px;row-gap:12px}.cinema-scene{width:min(380px,100%);min-height:0;aspect-ratio:1/1;justify-self:center;max-height:none}.cinema-copy{padding:4px 0 8px}.cinema-copy .eyebrow{margin-bottom:16px}.cinema-copy h1{font-size:clamp(54px,13vw,82px)}.cinema-copy .intro{margin-top:16px}.cinematic-home>.panel{margin-top:16px}.cinematic-home .features>div{padding:0 9px;gap:8px}.cinematic-home .features strong{font-size:9px}.cinematic-home .features small{font-size:9px}.scene-coordinate{font-size:7px}}
 @media(max-width:440px){.cinema-scene{width:100%;max-width:310px}.cinematic-home .features{grid-template-columns:1fr;gap:14px}.cinematic-home .features>div{padding:0;border-right:0}.cinematic-home .features>div:first-child{padding-left:0}.cinema-copy h1{font-size:56px}.status{letter-spacing:.04em}.shell{padding:0 16px}}
 @media(prefers-reduced-motion:reduce){.scene-moon,.scene-ring-one,.scene-ring-two,.scene-core{animation:none}}
+
+
+/* MOTION SYSTEM · cinematic atmosphere across every state */
+.shell{animation:screen-arrive .72s cubic-bezier(.2,.75,.25,1) both}
+.shell:after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.16;background:linear-gradient(transparent 0%,#b7a2ff08 50%,transparent 100%);background-size:100% 9px;mask-image:linear-gradient(to bottom,transparent,#000 16%,#000 82%,transparent);animation:scan-drift 16s linear infinite}
+.glow-one{animation:ambient-drift 18s ease-in-out infinite alternate}
+.glow-two{animation:ambient-drift 23s ease-in-out infinite alternate-reverse}
+.hero{animation:hero-arrive .72s cubic-bezier(.2,.75,.25,1) both}
+.room-view>.eyebrow{animation:rise-in .55s .04s both}
+.room-view>h1{animation:rise-in .65s .1s both}
+.room-view>.intro{animation:rise-in .65s .17s both}
+.room-view>.panel{animation:panel-arrive .72s .2s both}
+.room-view .phase-banner{animation:panel-arrive .6s .28s both}
+.room-view .panel-head{animation:rise-in .5s .32s both}
+.room-view .players li{animation:rise-in .35s both}
+.room-view .players li:nth-child(1){animation-delay:.04s}
+.room-view .players li:nth-child(2){animation-delay:.08s}
+.room-view .players li:nth-child(3){animation-delay:.12s}
+.room-view .players li:nth-child(4){animation-delay:.16s}
+.room-view .players li:nth-child(5){animation-delay:.2s}
+.room-view .players li:nth-child(6){animation-delay:.24s}
+.room-view .players li:nth-child(7){animation-delay:.28s}
+.room-view .players li:nth-child(8){animation-delay:.32s}
+.room-view .action-form,.room-view .clues,.room-view .players-wrap,.room-view .chat-box{animation:rise-in .48s .12s both}
+.room-view .secret{animation:secret-reveal .65s cubic-bezier(.18,.8,.25,1) both}
+.room-view .room-code{position:relative;width:max-content;max-width:100%;font:700 clamp(30px,6vw,48px) "DM Mono",monospace;letter-spacing:.22em;color:#e5dcff;text-shadow:0 0 26px #a18aff40}
+.room-view .room-code:after{content:"ROOM ACCESS";display:block;margin-top:5px;font:8px "DM Mono",monospace;letter-spacing:.2em;color:#78748d;text-shadow:none}
+.panel{position:relative;overflow:hidden}
+.panel:before{content:"";position:absolute;inset:0;pointer-events:none;border-radius:inherit;background:linear-gradient(112deg,transparent 12%,#d7c5ff08 35%,transparent 56%);transform:translateX(-130%);animation:panel-glint 9s 1.2s ease-in-out infinite}
+.panel>*{position:relative;z-index:1}
+button{position:relative;overflow:hidden;isolation:isolate;transition:transform .22s cubic-bezier(.2,.8,.2,1),border-color .22s,background .22s,box-shadow .22s,filter .22s}
+button:before{content:"";position:absolute;z-index:-1;inset:-40% auto -40% -55%;width:35%;transform:skewX(-20deg);background:linear-gradient(90deg,transparent,#ffffff36,transparent);transition:left .55s cubic-bezier(.2,.8,.2,1)}
+button:hover:not(:disabled):before{left:130%}
+button:hover:not(:disabled){filter:brightness(1.08)}
+button:active:not(:disabled){transform:translateY(1px) scale(.985);filter:brightness(.94)}
+button:focus-visible,input:focus-visible{outline:2px solid #c6b4ff;outline-offset:3px}
+.primary{box-shadow:0 7px 26px #9d7aff16,inset 0 1px #ffffff25}
+.primary:hover:not(:disabled){box-shadow:0 10px 32px #9d7aff30,inset 0 1px #ffffff40}
+.primary:disabled{filter:saturate(.55)}
+.is-busy .primary:disabled{cursor:progress}
+.is-busy .primary:disabled span{display:inline-block;animation:arrow-loading .7s ease-in-out infinite alternate}
+.text-input,.join input{transition:border-color .22s,box-shadow .22s,background .22s}
+.vote-card:hover:not(:disabled){box-shadow:0 10px 30px #9d7aff12}
+.vote-card.selected{animation:vote-lock .28s cubic-bezier(.2,.8,.2,1) both}
+.phase-timer .timer-track span,.crew-progress-track span{position:relative;overflow:hidden}
+.phase-timer .timer-track span:after,.crew-progress-track span:after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,#ffffff55,transparent);animation:bar-glint 2.8s linear infinite}
+.live-pulse i,.status i{animation:live-blink 1.8s ease-in-out infinite}
+.result-sigil{animation:sigil-arrive .8s cubic-bezier(.16,.8,.2,1) both,core-pulse 4s 1s ease-in-out infinite}
+.result-reveal:after{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(circle at 50% 0%,#b6a0ff10,transparent 45%)}
+.error-toast{animation:toast-arrive .32s cubic-bezier(.2,.8,.2,1) both}
+.features>div{transition:transform .25s,color .25s}
+.features>div:hover{transform:translateY(-3px)}
+.scene-caption{animation:caption-flicker 7s ease-in-out infinite}
+@keyframes screen-arrive{from{opacity:0}to{opacity:1}}
+@keyframes hero-arrive{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+@keyframes rise-in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes panel-arrive{from{opacity:0;transform:translateY(16px) scale(.99);filter:blur(4px)}to{opacity:1;transform:translateY(0) scale(1);filter:blur(0)}}
+@keyframes secret-reveal{0%{opacity:0;transform:perspective(700px) rotateX(-8deg) translateY(10px)}100%{opacity:1;transform:perspective(700px) rotateX(0) translateY(0)}}
+@keyframes ambient-drift{0%{transform:translate3d(0,0,0) scale(.94)}100%{transform:translate3d(35px,-22px,0) scale(1.08)}}
+@keyframes scan-drift{from{background-position:0 -100vh}to{background-position:0 100vh}}
+@keyframes panel-glint{0%,68%,100%{transform:translateX(-130%)}82%{transform:translateX(130%)}}
+@keyframes arrow-loading{from{transform:translateX(0);opacity:.65}to{transform:translateX(3px);opacity:1}}
+@keyframes vote-lock{from{transform:scale(.97)}to{transform:scale(1)}}
+@keyframes bar-glint{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
+@keyframes sigil-arrive{0%{opacity:0;transform:scale(.6) rotate(-18deg)}70%{opacity:1;transform:scale(1.08) rotate(3deg)}100%{transform:scale(1) rotate(0)}}
+@keyframes toast-arrive{from{opacity:0;transform:translate(-50%,12px)}to{opacity:1;transform:translate(-50%,0)}}
+@keyframes caption-flicker{0%,94%,100%{opacity:.7}96%{opacity:1}98%{opacity:.45}}
+@media(prefers-reduced-motion:reduce){
+ .shell,.hero,.room-view>.eyebrow,.room-view>h1,.room-view>.intro,.room-view>.panel,.room-view .phase-banner,.room-view .panel-head,.room-view .players li,.room-view .action-form,.room-view .clues,.room-view .players-wrap,.room-view .chat-box,.room-view .secret,.panel:before,.shell:after,.glow-one,.glow-two,.result-sigil,.scene-caption,.error-toast{animation:none!important}
+ button,.features>div,.text-input,.join input{transition:none!important}
+ button:before,.phase-timer .timer-track span:after,.crew-progress-track span:after{display:none}
+ .features>div:hover,button:active:not(:disabled){transform:none}
+}
