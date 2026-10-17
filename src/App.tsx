@@ -28,6 +28,7 @@ export default function App() {
   const [roleVisible, setRoleVisible] = useState(false);
   const [copiedRoomCode, setCopiedRoomCode] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(false);
+  const previousPhaseRef = useRef<string | undefined>(undefined);
   const [stats, setStats] = useState<{games_played:number;crew_wins:number;impostor_wins:number}|undefined>();
   const [clockNow, setClockNow] = useState(Date.now());
   const shellRef = useRef<HTMLElement>(null);
@@ -116,12 +117,13 @@ export default function App() {
     }
   };
 
-  const playFeedback = (kind: "reveal" | "confirm") => {
-    if (!soundEnabled || typeof window === "undefined") return;
+  const playFeedback = (kind: "reveal" | "confirm", force = false) => {
+    if ((!soundEnabled && !force) || typeof window === "undefined") return;
     try {
       const AudioContextClass = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-      if (!AudioContextClass) return;
+      if (!AudioContextClass) { setError("Sound is not supported by this browser."); return; }
       const context = new AudioContextClass();
+      if (context.state === "suspended") void context.resume();
       const oscillator = context.createOscillator();
       const gain = context.createGain();
       oscillator.type = "sine";
@@ -135,6 +137,12 @@ export default function App() {
       oscillator.onended = () => { void context.close(); };
     } catch { /* sound is an optional enhancement */ }
   };
+
+  useEffect(() => {
+    const phaseNow = game?.room.phase;
+    if (previousPhaseRef.current !== undefined && phaseNow && previousPhaseRef.current !== phaseNow) playFeedback("confirm");
+    previousPhaseRef.current = phaseNow;
+  }, [game?.room.phase, soundEnabled]);
 
   useEffect(() => {
     if (!game?.room.code) return;
@@ -158,11 +166,11 @@ export default function App() {
   };
   const sendClue = async () => {
     if (!game || clue.trim().length < 1) return;
-    await act({action:"submit_clue", code:game.room.code, token, clue:clue.trim()}); setClue("");
+    const ok = await act({action:"submit_clue", code:game.room.code, token, clue:clue.trim()}); if (ok) { setClue(""); playFeedback("confirm"); }
   };
   const sendMessage = async () => {
     if (!game || !message.trim()) return;
-    await act({action:"send_chat", code:game.room.code, token, message:message.trim()}); setMessage("");
+    const ok = await act({action:"send_chat", code:game.room.code, token, message:message.trim()}); if (ok) { setMessage(""); playFeedback("confirm"); }
   };
   const phase = game?.room.phase;
   const submittedClues = game?.players.filter(p => p.has_clued).length ?? 0;
@@ -175,7 +183,7 @@ export default function App() {
   return <main ref={shellRef} className={busy ? "shell is-busy" : "shell"}>
     <div className="cursor-orb" ref={cursorRef} aria-hidden="true"><span /></div>
     <div className="glow glow-one" /><div className="glow glow-two" />
-    <header><span className="mark">◈</span><span>SHADOW<span className="accent"> IMPOSTOR</span></span><div className="header-actions"><button className="sound-toggle" type="button" aria-pressed={soundEnabled} onClick={() => setSoundEnabled(value => !value)} title={soundEnabled ? "Mute interface sounds" : "Enable interface sounds"}><span>{soundEnabled ? "♫" : "♪"}</span> SOUND {soundEnabled ? "ON" : "OFF"}</button><span className="status"><i /> LIVE SOCIAL DEDUCTION</span></div></header>
+    <header><span className="mark">◈</span><span>SHADOW<span className="accent"> IMPOSTOR</span></span><div className="header-actions"><button className="sound-toggle" type="button" aria-pressed={soundEnabled} onClick={() => { const enabling = !soundEnabled; setSoundEnabled(enabling); if (enabling) playFeedback("confirm", true); }} title={soundEnabled ? "Mute interface sounds" : "Enable interface sounds"}><span>{soundEnabled ? "♫" : "♪"}</span> SOUND {soundEnabled ? "ON" : "OFF"}</button><span className="status"><i /> LIVE SOCIAL DEDUCTION</span></div></header>
     {view === "home" || !game ? <section className="hero cinematic-home">
       <div className="cinema-scene" aria-hidden="true"><div className="scene-grid"/><div className="scene-moon"/><div className="scene-ring scene-ring-one"/><div className="scene-ring scene-ring-two"/><div className="scene-core">◈</div><span className="scene-coordinate coordinate-one">SECTOR 07 / UNKNOWN</span><span className="scene-coordinate coordinate-two">TRUST INDEX: UNSTABLE</span><span className="scene-caption">A SOCIAL DEDUCTION EXPERIENCE</span></div>
       <div className="cinema-copy"><p className="eyebrow"><span className="eyebrow-line"/> TRUST IS A LIMITED RESOURCE</p><h1>ONE OF YOU<br/><span>IS LYING.</span></h1>
@@ -198,9 +206,9 @@ export default function App() {
         {phase === "lobby" && <><div className="lobby-progress"><div><span>CREW ASSEMBLY</span><strong>{playerTotal}/8</strong></div><div className="lobby-progress-track"><span style={{width:`${Math.min(100, playerTotal/8*100)}%`}} /></div><small>{playerTotal < 4 ? `${4-playerTotal} more ${4-playerTotal===1?"player":"players"} needed to unlock launch` : playerTotal === 8 ? "Crew full. The game is ready." : "Minimum reached. More suspects can still join."}</small></div><h2>Players</h2><ul className="players">{game.players.map(p=><li key={p.player_id}><span>{p.name}{p.is_host?" · HOST":""}</span><span>{p.alive?"●":"○"}</span></li>)}</ul><button className="primary launch-button" disabled={busy||!game.you.is_host||game.room.player_count<4} onClick={()=>{playFeedback("confirm");void act({action:"start_game",code:game.room.code,token})}}>{busy ? "Launching game..." : game.you.is_host ? (game.room.player_count<4?"Waiting for 4 players":"Start game"):"Waiting for host"} <span>↗</span></button></>}
         {phase !== "lobby" && <div className={`secret ${roleVisible ? "secret-revealed" : "secret-concealed"}`}><div className="secret-card-top"><p className="eyebrow">PERSONAL DOSSIER · ONLY YOU</p><span className="secret-lock">{roleVisible ? "ACCESS GRANTED" : "ENCRYPTED"}</span></div>{roleVisible ? <div className="role-reveal-content" key={`${game.room.round}-${game.you.role}`}><p className={`role-stamp ${game.you.role === "impostor" ? "role-stamp-impostor" : ""}`}>{game.you.role === "impostor" ? "☠" : "◈"}</p><h2>{game.you.role?.toUpperCase() ?? "UNKNOWN"}</h2><p className="word">{game.you.word ?? "Word hidden"}</p><p className="fine">Keep this word secret. Impostors receive a decoy word.</p></div> : <div className="secret-locked-content"><div className="secret-locked-glyph">◈</div><h2>YOUR IDENTITY IS SEALED</h2><p>Your role and word are hidden. Make sure nobody is looking before you reveal them.</p></div>}<button className="secret-reveal-button" type="button" onClick={() => { setRoleVisible(value => !value); if (!roleVisible) playFeedback("reveal"); }}>{roleVisible ? "Hide my role" : "Reveal my role"}<span>{roleVisible ? "◉" : "◎"}</span></button></div>}
         {phase === "clue" && game.you.alive && !game.players.find(p=>p.player_id===game.you.player_id)?.has_clued && <div className="action-form"><label>YOUR CLUE</label><input className="text-input" maxLength={120} placeholder="Give a subtle clue..." value={clue} onChange={e=>setClue(e.target.value)}/><button className="primary" disabled={busy||!clue.trim()} onClick={()=>void sendClue()}>{busy ? "Sending clue..." : "Submit clue"} <span>↗</span></button></div>}
-        {phase === "clue" && game.you.is_host && <button className="secondary" disabled={busy} onClick={()=>void act({action:"begin_voting",code:game.room.code,token})}>Move to discussion / voting</button>}
+        {phase === "discussion" && game.you.is_host && <button className="secondary" disabled={busy} onClick={()=>void act({action:"begin_voting",code:game.room.code,token})}>Move to voting</button>}
         {(phase === "discussion" || phase === "voting") && <div className="clues"><h2>Clues from the crew</h2>{game.players.filter(p=>p.clue).map(p=><p key={p.player_id}><strong>{p.name}:</strong> {p.clue}</p>)}{game.players.every(p=>!p.clue)&&<p className="muted">No clues submitted yet.</p>}</div>}
-        {phase === "voting" && game.you.alive && <div className="action-form"><label>CAST YOUR VOTE <span className="vote-private">PRIVATE BALLOT</span></label><p className="vote-hint">Who feels out of place? Select a player to lock in your choice.</p><div className="vote-grid">{game.players.filter(p=>p.alive&&p.player_id!==game.you.player_id).map(p=><button type="button" key={p.player_id} className={`vote-card ${target===p.player_id?"selected":""}`} disabled={busy||voteSubmitted} aria-pressed={target===p.player_id} onClick={()=>setTarget(p.player_id)}><span className="vote-avatar">{p.name.trim().charAt(0).toUpperCase()}</span><span className="vote-name">{p.name}</span><span className="vote-select">{target===p.player_id?"✓":"＋"}</span></button>)}</div>{voteSubmitted ? <div className="vote-locked"><span>✓</span><div><strong>Vote sealed</strong><small>Your choice is locked in. Waiting for the crew...</small></div></div> : <button className="primary" disabled={busy||!target} onClick={async()=>{const ok=await act({action:"vote",code:game.room.code,token,target_player_id:target});if(ok)setVoteSubmitted(true)}}>{busy ? "Sealing vote..." : "Seal my vote"} <span>↗</span></button>}<p className="vote-footnote">Your vote stays secret until the reveal.</p></div>}
+        {phase === "voting" && game.you.alive && <div className="action-form"><label>CAST YOUR VOTE <span className="vote-private">PRIVATE BALLOT</span></label><p className="vote-hint">Who feels out of place? Select a player to lock in your choice.</p><div className="vote-grid">{game.players.filter(p=>p.alive&&p.player_id!==game.you.player_id).map(p=><button type="button" key={p.player_id} className={`vote-card ${target===p.player_id?"selected":""}`} disabled={busy||voteSubmitted} aria-pressed={target===p.player_id} onClick={()=>setTarget(p.player_id)}><span className="vote-avatar">{p.name.trim().charAt(0).toUpperCase()}</span><span className="vote-name">{p.name}</span><span className="vote-select">{target===p.player_id?"✓":"＋"}</span></button>)}</div>{voteSubmitted ? <div className="vote-locked"><span>✓</span><div><strong>Vote sealed</strong><small>Your choice is locked in. Waiting for the crew...</small></div></div> : <button className="primary" disabled={busy||!target} onClick={async()=>{const ok=await act({action:"vote",code:game.room.code,token,target_player_id:target});if(ok){setVoteSubmitted(true);playFeedback("confirm")}}}>{busy ? "Sealing vote..." : "Seal my vote"} <span>↗</span></button>}<p className="vote-footnote">Your vote stays secret until the reveal.</p></div>}
         {phase === "guess" && game.you.role === "impostor" && <div className="action-form"><label>GUESS THE CREW'S SECRET WORD</label><input className="text-input" value={guess} onChange={e=>setGuess(e.target.value)} placeholder="Your final guess..." maxLength={60}/><button className="primary" disabled={busy||!guess.trim()} onClick={()=>void act({action:"guess_secret",code:game.room.code,token,guess:guess.trim()})}>{busy ? "Sending guess..." : "Make final guess"} <span>↗</span></button></div>}
         {phase === "results" && <div className={`result-reveal ${game.room.winner === "impostor" ? "impostor-win" : "crew-win"}`}><div className="result-sigil">{game.room.winner === "impostor" ? "☠" : "✦"}</div><p className="eyebrow">ROUND {game.room.round} · THE REVEAL</p><h2>{game.room.winner === "impostor" ? "THE IMPOSTOR WINS" : game.room.winner === "crew" ? "THE CREW WINS" : "ROUND COMPLETE"}</h2><p className="result-subtitle">{game.room.winner === "impostor" ? "The shadows slipped through your grasp." : "The crew saw through the deception."}</p><div className="result-secret"><span>THE SECRET WORD</span><strong>{game.room.secret_word ?? "REVEALED SOON"}</strong></div><div className="reveal-roster"><p className="eyebrow">WHO WAS HIDING IN PLAIN SIGHT</p>{game.players.map(p=><div className="reveal-player" key={p.player_id}><span className="reveal-avatar">{p.name.trim().charAt(0).toUpperCase()}</span><span className="reveal-name">{p.name}{p.player_id===game.you.player_id?" · YOU":""}</span><span className={`role-chip ${p.role==="impostor"?"role-impostor":"role-crew"}`}>{p.role ?? "UNKNOWN"}</span></div>)}</div><button className="primary result-rematch" disabled={busy||!game.you.is_host} onClick={()=>void act({action:"start_game",code:game.room.code,token})}>{game.you.is_host ? "Run it back" : "Waiting for host"} <span>↗</span></button>{!game.you.is_host && <p className="result-footnote">The host can start the next round when everyone is ready.</p>}</div>}
         <div className="waiting-strip"><span className="waiting-dots"><i></i><i></i><i></i></span><span>{phase === "lobby" ? `${Math.max(0, 4-playerTotal)} more player${4-playerTotal===1?"":"s"} needed to start` : phase === "clue" ? "Waiting for everyone to share a clue" : phase === "discussion" ? "Use this time to compare stories" : phase === "voting" ? "Votes are private until the reveal" : phase === "guess" ? "The final guess decides the round" : "Ready for another round?"}</span></div><div className="players-wrap"><h2>Crew <span className="count-pill">{playerTotal} PLAYERS</span></h2>{phase === "clue" && <div className="crew-progress"><div><span>CLUE PROGRESS</span><strong>{submittedClues}/{game.players.filter(p=>p.alive).length}</strong></div><div className="crew-progress-track"><span style={{width:`${game.players.filter(p=>p.alive).length ? submittedClues/game.players.filter(p=>p.alive).length*100 : 0}%`}} /></div></div>}<ul className="players">{game.players.map(p=><li className="crew-player" key={p.player_id}><span className="crew-identity"><i className={p.alive?"player-dot":"player-dot dead"} /> <span>{p.name}{p.is_host?" · HOST":""}{p.player_id===game.you.player_id?" · YOU":""}<small>{!p.alive?"Eliminated":phase === "clue" ? (p.has_clued ? "Clue submitted" : "Thinking of a clue") : phase === "results" ? "Round complete" : "In the game"}</small></span></span><span className={`crew-state ${!p.alive?"state-dead":phase === "clue" && p.has_clued?"state-done":""}`}>{!p.alive?"OUT":phase === "clue" && p.has_clued?"READY":"●"}</span></li>)}</ul></div>
