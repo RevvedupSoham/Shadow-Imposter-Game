@@ -44,8 +44,6 @@ export default function App() {
   const [clockNow, setClockNow] = useState(Date.now());
   const shellRef = useRef<HTMLElement>(null);
   const cursorRef = useRef<HTMLDivElement>(null);
-  const ambientContextRef = useRef<AudioContext | null>(null);
-  const ambientNodesRef = useRef<AudioNode[]>([]);
 
   const act = useCallback(async (action: Parameters<typeof sendAction>[0]) => {
     setBusy(true); setError("");
