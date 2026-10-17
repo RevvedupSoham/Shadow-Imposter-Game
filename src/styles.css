@@ -487,3 +487,16 @@ body { min-height: 100vh; min-height: 100dvh; }
 .click-ripple {
   z-index: 1100 !important;
 }
+
+
+/* Keep orbital annotations readable instead of clipping their text at the scene circle. */
+.cinema-scene { overflow: visible; }
+.scene-coordinate, .scene-caption { z-index: 4; max-width: none; overflow: visible; }
+.coordinate-one { left: 3%; white-space: nowrap; }
+.coordinate-two { right: -8%; white-space: nowrap; }
+.scene-caption { bottom: 4%; white-space: nowrap; }
+@media (max-width: 760px) {
+  .coordinate-one { left: 2%; }
+  .coordinate-two { right: 0; }
+  .scene-caption { bottom: 3%; }
+}
