@@ -165,8 +165,8 @@ export default function App() {
     } catch { setError("Could not play sound. Check your browser audio settings."); }
   };
 
-  // Procedural stealth-game soundtrack: evolving drone, pulsing bass, and sparse minor-key synth notes.
-  // Audio starts only after the player enables THEME, satisfying browser gesture policies.
+  // Softer procedural soundtrack: warm pads, slow pulses, and gentle plucked notes.
+  // Starts only after the player enables MUSIC, so browser autoplay rules are respected.
   useEffect(() => {
     if (!soundEnabled) {
       const oldContext = ambientContextRef.current;
@@ -179,73 +179,86 @@ export default function App() {
     if (!AudioContextClass) { setError("Procedural music is not supported by this browser."); return; }
     const context = new AudioContextClass();
     ambientContextRef.current = context;
+
     const master = context.createGain();
     const compressor = context.createDynamicsCompressor();
-    master.gain.value = 0.42;
-    compressor.threshold.value = -24;
-    compressor.knee.value = 18;
-    compressor.ratio.value = 3;
-    compressor.attack.value = 0.025;
-    compressor.release.value = 0.3;
+    master.gain.value = 0.2;
+    compressor.threshold.value = -30;
+    compressor.knee.value = 24;
+    compressor.ratio.value = 2;
+    compressor.attack.value = 0.08;
+    compressor.release.value = 0.55;
     master.connect(compressor);
     compressor.connect(context.destination);
 
-    const droneFilter = context.createBiquadFilter();
-    droneFilter.type = "lowpass";
-    droneFilter.frequency.value = 430;
-    droneFilter.Q.value = 0.7;
-    droneFilter.connect(master);
-    const droneA = context.createOscillator();
-    const droneB = context.createOscillator();
-    const droneGain = context.createGain();
-    droneA.type = "sawtooth";
-    droneB.type = "triangle";
-    droneA.frequency.value = 55;
-    droneB.frequency.value = 82.41;
-    droneB.detune.value = -7;
-    droneGain.gain.value = 0.035;
-    droneA.connect(droneGain); droneB.connect(droneGain); droneGain.connect(droneFilter);
-    droneA.start(); droneB.start();
+    // Gentle, filtered fifths create a warm ambient bed without harsh high-frequency energy.
+    const padFilter = context.createBiquadFilter();
+    padFilter.type = "lowpass";
+    padFilter.frequency.value = 520;
+    padFilter.Q.value = 0.45;
+    const padGain = context.createGain();
+    padGain.gain.value = 0.0001;
+    padGain.connect(padFilter);
+    padFilter.connect(master);
+    const padA = context.createOscillator();
+    const padB = context.createOscillator();
+    const padC = context.createOscillator();
+    padA.type = "sine";
+    padB.type = "triangle";
+    padC.type = "sine";
+    padA.frequency.value = 110;
+    padB.frequency.value = 164.81;
+    padC.frequency.value = 220;
+    padB.detune.value = -3;
+    padC.detune.value = 4;
+    padA.connect(padGain); padB.connect(padGain); padC.connect(padGain);
+    padA.start(); padB.start(); padC.start();
+    padGain.gain.setValueAtTime(0.0001, context.currentTime);
+    padGain.gain.exponentialRampToValueAtTime(0.42, context.currentTime + 3.5);
 
-    const pulseGain = context.createGain();
-    pulseGain.gain.value = 0.0001;
-    pulseGain.connect(master);
     const pulse = context.createOscillator();
+    const pulseFilter = context.createBiquadFilter();
+    const pulseGain = context.createGain();
     pulse.type = "sine";
     pulse.frequency.value = 55;
-    pulse.connect(pulseGain);
+    pulseFilter.type = "lowpass";
+    pulseFilter.frequency.value = 130;
+    pulseGain.gain.value = 0.0001;
+    pulse.connect(pulseFilter); pulseFilter.connect(pulseGain); pulseGain.connect(master);
     pulse.start();
 
     let step = 0;
-    const notes = [110, 130.81, 164.81, 196, 164.81, 146.83, 130.81, 98];
+    const notes = [220, 261.63, 329.63, 293.66, 261.63, 196, 220, 164.81];
     const tick = () => {
       if (context.state !== "running") return;
       const now = context.currentTime;
+      // Slow breathing bass, more atmosphere than a hard beat.
       pulseGain.gain.cancelScheduledValues(now);
-      pulseGain.gain.setValueAtTime(0.0001, now);
-      pulseGain.gain.exponentialRampToValueAtTime(step % 4 === 0 ? 0.11 : 0.055, now + 0.035);
-      pulseGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.24);
-      if (step % 2 === 0) {
+      pulseGain.gain.setValueAtTime(Math.max(0.0001, pulseGain.gain.value), now);
+      pulseGain.gain.linearRampToValueAtTime(step % 4 === 0 ? 0.075 : 0.028, now + 0.22);
+      pulseGain.gain.linearRampToValueAtTime(0.0001, now + 1.05);
+
+      // Soft, bell-like plucks drift in and out over the pad.
+      if (step % 3 === 0) {
         const note = context.createOscillator();
+        const toneFilter = context.createBiquadFilter();
         const envelope = context.createGain();
-        const filter = context.createBiquadFilter();
-        note.type = "triangle";
-        note.frequency.setValueAtTime(notes[(step / 2) % notes.length], now);
-        note.frequency.exponentialRampToValueAtTime(notes[(step / 2) % notes.length] * 0.995, now + 0.34);
-        filter.type = "lowpass";
-        filter.frequency.value = step % 8 === 0 ? 1250 : 760;
+        note.type = "sine";
+        note.frequency.value = notes[(step / 3) % notes.length];
+        toneFilter.type = "lowpass";
+        toneFilter.frequency.value = 1450;
         envelope.gain.setValueAtTime(0.0001, now);
-        envelope.gain.exponentialRampToValueAtTime(step % 8 === 0 ? 0.095 : 0.052, now + 0.025);
-        envelope.gain.exponentialRampToValueAtTime(0.0001, now + 0.36);
-        note.connect(filter); filter.connect(envelope); envelope.connect(master);
-        note.start(now); note.stop(now + 0.38);
-        note.onended = () => { note.disconnect(); filter.disconnect(); envelope.disconnect(); };
+        envelope.gain.exponentialRampToValueAtTime(step % 6 === 0 ? 0.038 : 0.022, now + 0.07);
+        envelope.gain.exponentialRampToValueAtTime(0.0001, now + 1.25);
+        note.connect(toneFilter); toneFilter.connect(envelope); envelope.connect(master);
+        note.start(now); note.stop(now + 1.3);
+        note.onended = () => { note.disconnect(); toneFilter.disconnect(); envelope.disconnect(); };
       }
       step += 1;
     };
-    const timer = window.setInterval(tick, 310);
+    const timer = window.setInterval(tick, 620);
     void context.resume();
-    ambientNodesRef.current = [master, compressor, droneFilter, droneA, droneB, droneGain, pulseGain, pulse];
+    ambientNodesRef.current = [master, compressor, padFilter, padGain, padA, padB, padC, pulse, pulseFilter, pulseGain];
     return () => {
       window.clearInterval(timer);
       if (ambientContextRef.current === context) ambientContextRef.current = null;
