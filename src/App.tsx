@@ -77,8 +77,8 @@ export default function App() {
   }, [game?.room.code]);
 
   useEffect(() => {
-    const minimum = window.setTimeout(() => setMinimumLoadingElapsed(true), 1100);
-    const failsafe = window.setTimeout(() => setLoadingScreen(false), 4500);
+    const minimum = window.setTimeout(() => setMinimumLoadingElapsed(true), 6800);
+    const failsafe = window.setTimeout(() => setLoadingScreen(false), 9000);
     return () => { window.clearTimeout(minimum); window.clearTimeout(failsafe); };
   }, []);
 
@@ -206,10 +206,10 @@ export default function App() {
   const waitingTitle = phase === "lobby" ? "The crew is assembling" : phase === "clue" ? "The clues are taking shape" : phase === "discussion" ? "Read between the lines" : phase === "voting" ? "The votes are being sealed" : phase === "guess" ? "One last chance" : phase === "results" ? "The truth is out" : "The shadows are moving";
   const isResults = phase === "results" && !!game;
   const playerWon = isResults && game.you.role === game.room.winner;
-  const backgroundVideo = view === "home" || !game ? "BG2.mp4" : isResults ? (playerWon ? "YouWon.mp4" : "GAMEOVER.mp4") : (phase === "discussion" || phase === "voting") ? "BG4.mp4" : null;
+  const backgroundVideo = view === "home" || !game ? "BG2.mp4" : isResults ? (playerWon ? "YouWon.mp4" : "GAMEOVER.mp4") : phase === "lobby" ? "BG2.mp4" : "BG4.mp4";
   const mediaUrl = (file: string) => `${import.meta.env.BASE_URL}media/${file}`;
   return <main ref={shellRef} className={`${busy ? "shell is-busy" : "shell"} ${loadingScreen ? "has-loading-screen" : ""} ${view === "home" || !game ? "screen-home" : isResults ? (playerWon ? "screen-won" : "screen-gameover") : phase === "voting" || phase === "discussion" ? "screen-voting" : "screen-game"}`}>
-    <div className="scene-video-layer" aria-hidden="true">{backgroundVideo && <video key={backgroundVideo} className={`scene-video scene-video-${backgroundVideo.replace(".mp4","").toLowerCase()}`} autoPlay muted loop playsInline preload={view === "home" || !game ? "auto" : "metadata"} onError={undefined}><source src={mediaUrl(backgroundVideo)} type="video/mp4" /></video>}<div className="scene-video-shade" /></div>
+    <div className="scene-video-layer" aria-hidden="true">{backgroundVideo && <video key={backgroundVideo} className={`scene-video scene-video-${backgroundVideo.replace(".mp4","").toLowerCase()}`} autoPlay muted loop playsInline preload={view === "home" || !game ? "auto" : "metadata"} onError={e => { e.currentTarget.style.visibility = "hidden"; }} onLoadedData={e => { e.currentTarget.style.visibility = "visible"; }}><source src={mediaUrl(backgroundVideo)} type="video/mp4" /></video>}<div className="scene-video-shade" /></div>
     <div className="cursor-orb" ref={cursorRef} aria-hidden="true"><span /></div>
     <div className="glow glow-one" /><div className="glow glow-two" />
     {loadingScreen && <section className="boot-screen" aria-label="Loading Shadow Impostor"><video className="boot-video" autoPlay muted loop playsInline preload="auto" onCanPlay={() => setBootVideoReady(true)} onError={() => setBootVideoReady(true)}><source src={mediaUrl("BG1.mp4")} type="video/mp4" /></video><div className="boot-shade" /><div className="boot-content"><span className="boot-mark">◈</span><p className="boot-kicker">A SOCIAL DEDUCTION EXPERIENCE</p><h1>SHADOW <span>IMPOSTOR</span></h1><div className="boot-loader" role="status" aria-live="polite"><span className="boot-loader-track"><i /></span><span>INITIALIZING THE SHADOWS</span></div><p className="boot-footnote">Securing the room · Preparing your experience</p></div><span className="boot-version">SYSTEM READY WHEN YOU ARE</span></section>}
