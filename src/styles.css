@@ -20,3 +20,23 @@
 @keyframes phase-sheen{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
 @media(prefers-reduced-motion:reduce){.phase-banner:after,.phase-orb,.live-pulse i,.waiting-dots i{animation:none}}
 @media(max-width:520px){.phase-banner{padding:13px;gap:10px}.phase-orb{width:36px;height:36px;flex-basis:36px}.phase-copy h2{font-size:13px}.live-pulse{font-size:8px}}
+
+
+/* Private ballot cards */
+.vote-hint{font-size:12px;line-height:1.6;color:#999caf;margin:0 0 14px}
+.vote-private{float:right;color:#6fe4c1;font-size:8px;letter-spacing:.1em}
+.vote-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:0 0 16px}
+.vote-card{display:flex;align-items:center;gap:10px;min-width:0;text-align:left;padding:12px;border:1px solid #ffffff19;border-radius:10px;background:linear-gradient(135deg,#ffffff07,#ffffff02);color:#f3f4fa;cursor:pointer;transition:border-color .18s,background .18s,transform .18s,box-shadow .18s;font:inherit}
+.vote-card:hover:not(:disabled){border-color:#a18aff80;background:#a18aff0d;transform:translateY(-1px)}
+.vote-card.selected{border-color:#a18aff;background:linear-gradient(135deg,#a18aff24,#a18aff0b);box-shadow:inset 0 0 0 1px #a18aff22}
+.vote-card:disabled{cursor:default;opacity:.75}
+.vote-avatar{width:35px;height:35px;flex:0 0 35px;display:grid;place-items:center;border-radius:10px;background:#a18aff19;border:1px solid #a18aff35;color:#c2b5ff;font:700 14px Manrope}
+.vote-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;font-weight:700}
+.vote-select{width:22px;height:22px;flex:0 0 22px;display:grid;place-items:center;border:1px solid #ffffff20;border-radius:50%;color:#898ba0;font-size:13px}
+.vote-card.selected .vote-select{background:#a18aff;color:#100e1c;border-color:#a18aff;font-weight:800}
+.vote-locked{display:flex;align-items:center;gap:12px;padding:14px;border:1px solid #50e2bb40;border-radius:10px;background:#50e2bb0c;margin-top:5px}
+.vote-locked>span{width:30px;height:30px;flex:0 0 30px;display:grid;place-items:center;border-radius:50%;background:#50e2bb20;color:#70e6c4;font-size:16px}
+.vote-locked div{display:grid;gap:4px}.vote-locked strong{font-size:12px;color:#83e9ce}.vote-locked small{font-size:11px;line-height:1.5;color:#a6a8b8}
+.vote-footnote{text-align:center;font:9px "DM Mono",monospace;letter-spacing:.04em;color:#777b91;margin:12px 0 0}
+@media(max-width:420px){.vote-grid{grid-template-columns:1fr}.vote-card{padding:10px}.vote-avatar{width:32px;height:32px;flex-basis:32px}}
+@media(prefers-reduced-motion:reduce){.vote-card{transition:none}}
