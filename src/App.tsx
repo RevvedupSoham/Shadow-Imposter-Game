@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { sendAction, subscribeToRoom, type GameSnapshot } from "./lib/api";
 import { isConfigured } from "./lib/supabase";
 
@@ -27,6 +27,8 @@ export default function App() {
   const [voteSubmitted, setVoteSubmitted] = useState(false);
   const [stats, setStats] = useState<{games_played:number;crew_wins:number;impostor_wins:number}|undefined>();
   const [clockNow, setClockNow] = useState(Date.now());
+  const shellRef = useRef<HTMLElement>(null);
+  const cursorRef = useRef<HTMLDivElement>(null);
 
   const act = useCallback(async (action: Parameters<typeof sendAction>[0]) => {
     setBusy(true); setError("");
@@ -58,6 +60,40 @@ export default function App() {
   useEffect(() => {
     const clock = window.setInterval(() => setClockNow(Date.now()), 1000);
     return () => window.clearInterval(clock);
+  }, []);
+
+  // Pointer tracking is direct-to-DOM to avoid React renders on mouse movement.
+  useEffect(() => {
+    if (!window.matchMedia("(pointer: fine)").matches) return;
+    const shell = shellRef.current;
+    const cursor = cursorRef.current;
+    if (!shell || !cursor) return;
+    let lastRipple = 0;
+    const move = (event: PointerEvent) => {
+      shell.style.setProperty("--pointer-x", `${event.clientX}px`);
+      shell.style.setProperty("--pointer-y", `${event.clientY}px`);
+      cursor.style.transform = `translate3d(${event.clientX}px, ${event.clientY}px, 0)`;
+      const target = event.target instanceof Element ? event.target : null;
+      cursor.classList.toggle("is-interactive", !!target?.closest("button, a, input, textarea, [role=button], .vote-card"));
+      cursor.classList.toggle("is-text", !!target?.closest("input, textarea"));
+    };
+    const click = (event: PointerEvent) => {
+      const now = performance.now();
+      if (now - lastRipple < 45) return;
+      lastRipple = now;
+      const ripple = document.createElement("span");
+      ripple.className = "click-ripple";
+      ripple.style.left = `${event.clientX}px`;
+      ripple.style.top = `${event.clientY}px`;
+      document.body.appendChild(ripple);
+      window.setTimeout(() => ripple.remove(), 760);
+    };
+    window.addEventListener("pointermove", move, { passive: true });
+    window.addEventListener("pointerdown", click, { passive: true });
+    return () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerdown", click);
+    };
   }, []);
 
   useEffect(() => {
@@ -101,7 +137,8 @@ export default function App() {
   const secondsLeft = phaseDuration ? Math.max(0, phaseDuration - Math.floor((clockNow - phaseStartedAt) / 1000)) : 0;
   const phaseProgress = phaseDuration ? Math.min(100, Math.max(0, ((phaseDuration - secondsLeft) / phaseDuration) * 100)) : 0;
   const waitingTitle = phase === "lobby" ? "The crew is assembling" : phase === "clue" ? "The clues are taking shape" : phase === "discussion" ? "Read between the lines" : phase === "voting" ? "The votes are being sealed" : phase === "guess" ? "One last chance" : phase === "results" ? "The truth is out" : "The shadows are moving";
-  return <main className={busy ? "shell is-busy" : "shell"}>
+  return <main ref={shellRef} className={busy ? "shell is-busy" : "shell"}>
+    <div className="cursor-orb" ref={cursorRef} aria-hidden="true"><span /></div>
     <div className="glow glow-one" /><div className="glow glow-two" />
     <header><span className="mark">◈</span><span>SHADOW<span className="accent"> IMPOSTOR</span></span><span className="status"><i /> LIVE SOCIAL DEDUCTION</span></header>
     {view === "home" || !game ? <section className="hero cinematic-home">
