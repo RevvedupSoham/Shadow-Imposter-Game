@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { sendAction, subscribeToRoom, type GameSnapshot } from "./lib/api";
 import { isConfigured } from "./lib/supabase";
 import { isValidChatMessage, isValidClue, isValidNickname, isValidRoomCode, phaseDuration, secondsRemaining } from "./lib/game";
@@ -76,49 +76,47 @@ export default function App() {
     } catch { /* brief network interruptions are handled by the next refresh */ }
   }, [game?.room.code]);
 
-  useEffect(() => {
-    // Never let browser history, late video/font layout, or scroll anchoring open the app halfway down.
+  useLayoutEffect(() => {
+    // Reset the actual document scroller before the first paint, not after it.
     const previousRestoration = window.history.scrollRestoration;
     window.history.scrollRestoration = "manual";
-    let frameOne = 0;
-    let frameTwo = 0;
-    let delayedReset = 0;
-    const resetScroll = () => {
-      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    const reset = () => {
+      window.scrollTo(0, 0);
       document.documentElement.scrollTop = 0;
       document.body.scrollTop = 0;
-      frameOne = window.requestAnimationFrame(() => {
-        window.scrollTo({ top: 0, left: 0, behavior: "auto" });
-        frameTwo = window.requestAnimationFrame(() => window.scrollTo({ top: 0, left: 0, behavior: "auto" }));
-      });
+      if (shellRef.current) shellRef.current.scrollTop = 0;
     };
-    resetScroll();
-    window.addEventListener("pageshow", resetScroll);
-    window.addEventListener("load", resetScroll);
+    reset();
+    const first = window.requestAnimationFrame(reset);
+    const second = window.requestAnimationFrame(() => window.requestAnimationFrame(reset));
+    window.addEventListener("pageshow", reset);
     return () => {
-      window.cancelAnimationFrame(frameOne);
-      window.cancelAnimationFrame(frameTwo);
-      window.clearTimeout(delayedReset);
-      window.removeEventListener("pageshow", resetScroll);
-      window.removeEventListener("load", resetScroll);
+      window.cancelAnimationFrame(first);
+      window.cancelAnimationFrame(second);
+      window.removeEventListener("pageshow", reset);
       window.history.scrollRestoration = previousRestoration;
     };
   }, []);
 
-  useEffect(() => {
-    // Re-anchor after boot and whenever the visible game screen changes.
+  useLayoutEffect(() => {
+    // Video/font/layout shifts can re-anchor the viewport after the boot overlay exits.
     if (loadingScreen) return;
-    let frameOne = 0;
-    let frameTwo = 0;
-    frameOne = window.requestAnimationFrame(() => {
-      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    const reset = () => {
+      window.scrollTo(0, 0);
       document.documentElement.scrollTop = 0;
       document.body.scrollTop = 0;
-      frameTwo = window.requestAnimationFrame(() => window.scrollTo({ top: 0, left: 0, behavior: "auto" }));
-    });
+      if (shellRef.current) shellRef.current.scrollTop = 0;
+    };
+    reset();
+    const frames: number[] = [];
+    frames.push(window.requestAnimationFrame(reset));
+    frames.push(window.requestAnimationFrame(() => frames.push(window.requestAnimationFrame(reset))));
+    const shortDelay = window.setTimeout(reset, 120);
+    const settleDelay = window.setTimeout(reset, 500);
     return () => {
-      window.cancelAnimationFrame(frameOne);
-      window.cancelAnimationFrame(frameTwo);
+      frames.forEach(frame => window.cancelAnimationFrame(frame));
+      window.clearTimeout(shortDelay);
+      window.clearTimeout(settleDelay);
     };
   }, [loadingScreen, view, game?.room.phase]);
 
