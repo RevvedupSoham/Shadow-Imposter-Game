@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { sendAction, subscribeToRoom, type GameSnapshot } from "./lib/api";
 import { isConfigured } from "./lib/supabase";
 import { isValidChatMessage, isValidClue, isValidNickname, isValidRoomCode, phaseDuration, secondsRemaining } from "./lib/game";
@@ -76,55 +76,12 @@ export default function App() {
     } catch { /* brief network interruptions are handled by the next refresh */ }
   }, [game?.room.code]);
 
-  useLayoutEffect(() => {
-    // Anchor the actual app header to the viewport. scrollTo alone can miss a
-    // nested scroller or lose a race with browser scroll restoration.
-    const previousRestoration = window.history.scrollRestoration;
-    window.history.scrollRestoration = "manual";
-    const reset = () => {
-      const header = shellRef.current?.querySelector("header");
-      header?.scrollIntoView({ block: "start", behavior: "instant" });
-      window.scrollTo({ top: 0, left: 0, behavior: "instant" });
-      document.documentElement.scrollTop = 0;
-      document.body.scrollTop = 0;
-      if (shellRef.current) shellRef.current.scrollTop = 0;
-    };
-    reset();
-    const first = window.requestAnimationFrame(reset);
-    const second = window.requestAnimationFrame(() => window.requestAnimationFrame(reset));
-    window.addEventListener("pageshow", reset);
-    window.addEventListener("load", reset, { once: true });
-    document.fonts?.ready.then(reset).catch(() => {});
-    return () => {
-      window.cancelAnimationFrame(first);
-      window.cancelAnimationFrame(second);
-      window.removeEventListener("pageshow", reset);
-      window.removeEventListener("load", reset);
-      window.history.scrollRestoration = previousRestoration;
-    };
-  }, []);
-
-  useLayoutEffect(() => {
-    // Video/font/layout shifts can re-anchor the viewport after the boot overlay exits.
+  useEffect(() => {
+    // Keep the viewport stable without repeatedly fighting browser layout,
+    // video sizing, and the boot-to-home transition.
     if (loadingScreen) return;
-    const reset = () => {
-      window.scrollTo(0, 0);
-      document.documentElement.scrollTop = 0;
-      document.body.scrollTop = 0;
-      if (shellRef.current) shellRef.current.scrollTop = 0;
-    };
-    reset();
-    const frames: number[] = [];
-    frames.push(window.requestAnimationFrame(reset));
-    frames.push(window.requestAnimationFrame(() => frames.push(window.requestAnimationFrame(reset))));
-    const shortDelay = window.setTimeout(reset, 120);
-    const settleDelay = window.setTimeout(reset, 500);
-    return () => {
-      frames.forEach(frame => window.cancelAnimationFrame(frame));
-      window.clearTimeout(shortDelay);
-      window.clearTimeout(settleDelay);
-    };
-  }, [loadingScreen, view, game?.room.phase]);
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, [loadingScreen]);
 
   useEffect(() => {
     const minimum = window.setTimeout(() => setMinimumLoadingElapsed(true), 6800);
