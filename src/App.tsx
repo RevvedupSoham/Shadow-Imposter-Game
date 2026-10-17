@@ -79,6 +79,18 @@ export default function App() {
   }, [game?.room.code]);
 
   useEffect(() => {
+    // Prevent the browser restoring a stale scroll offset that opens on empty space.
+    const previousRestoration = window.history.scrollRestoration;
+    window.history.scrollRestoration = "manual";
+    window.scrollTo(0, 0);
+    const resetFrame = window.requestAnimationFrame(() => window.scrollTo(0, 0));
+    return () => {
+      window.cancelAnimationFrame(resetFrame);
+      window.history.scrollRestoration = previousRestoration;
+    };
+  }, []);
+
+  useEffect(() => {
     const minimum = window.setTimeout(() => setMinimumLoadingElapsed(true), 6800);
     const failsafe = window.setTimeout(() => setLoadingScreen(false), 9000);
     return () => { window.clearTimeout(minimum); window.clearTimeout(failsafe); };
