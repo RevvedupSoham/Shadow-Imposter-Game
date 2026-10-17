@@ -449,3 +449,14 @@ button:not(:disabled):hover{transform:translateY(-2px)}
 @keyframes boot-progress{0%{transform:translateX(-115%)}100%{transform:translateX(255%)}}
 @media(prefers-reduced-motion:reduce){.boot-mark,.boot-loader-track i{animation:none}.boot-screen,.scene-video-layer{transition:none}}
 @media(max-width:600px){.boot-mark{width:56px;height:56px;border-radius:17px}.boot-kicker{letter-spacing:.18em}.boot-content h1{letter-spacing:.07em}.boot-loader{margin-top:34px}}
+
+/* Full-viewport cinematic layers and no accidental horizontal gaps. */
+html, body, #root { min-height: 100%; }
+html, body { width: 100%; overflow-x: clip; }
+body { min-height: 100vh; }
+.shell { min-height: 100vh; min-height: 100dvh; }
+.scene-video-layer { position: fixed; inset: 0; width: 100vw; height: 100vh; height: 100dvh; }
+.scene-video { width: 100%; height: 100%; object-fit: cover; object-position: center center; }
+.boot-screen { min-height: 100vh; min-height: 100dvh; }
+.boot-video { object-fit: cover; object-position: center center; }
+@media (max-width: 760px) { .shell { padding-bottom: max(12px, env(safe-area-inset-bottom)); } }
