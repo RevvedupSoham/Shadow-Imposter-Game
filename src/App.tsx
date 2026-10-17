@@ -3,13 +3,20 @@ import { sendAction, subscribeToRoom, type GameSnapshot } from "./lib/api";
 import { isConfigured } from "./lib/supabase";
 import { isValidChatMessage, isValidClue, isValidNickname, isValidRoomCode, phaseDuration, secondsRemaining } from "./lib/game";
 
+function newPlayerToken() {
+  if (typeof crypto.randomUUID === "function") return crypto.randomUUID() + crypto.randomUUID();
+  const bytes = new Uint8Array(64);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, value => value.toString(16).padStart(2, "0")).join("");
+}
 function playerToken() {
   const key = "shadow-impostor-player-token";
-  let token = localStorage.getItem(key);
-  if (!token) {
-    token = crypto.randomUUID() + crypto.randomUUID();
-    localStorage.setItem(key, token);
-  }
+  try {
+    const existing = localStorage.getItem(key);
+    if (existing && existing.length >= 32) return existing;
+  } catch { /* storage may be disabled; this session can still play */ }
+  const token = newPlayerToken();
+  try { localStorage.setItem(key, token); } catch { /* persistence is optional */ }
   return token;
 }
 let token = playerToken();
@@ -164,9 +171,9 @@ export default function App() {
     if (name.trim().length < 2) { setError("Enter a nickname with at least 2 characters."); return; }
     if (!isValidRoomCode(codeInput)) { setError("Enter the full 6-character room code."); return; }
     // Joining a room needs a new guest identity, including same-browser testing.
-    const joinToken = crypto.randomUUID() + crypto.randomUUID();
+    const joinToken = newPlayerToken();
     token = joinToken;
-    localStorage.setItem("shadow-impostor-player-token", joinToken);
+    try { localStorage.setItem("shadow-impostor-player-token", joinToken); } catch { /* same-tab play still works without storage */ }
     await act({action:"join_room", code:codeInput.trim().toUpperCase(), name:name.trim(), token:joinToken});
   };
   const sendClue = async () => {
