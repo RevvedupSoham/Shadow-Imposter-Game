@@ -44,6 +44,8 @@ export default function App() {
   const [clockNow, setClockNow] = useState(Date.now());
   const shellRef = useRef<HTMLElement>(null);
   const cursorRef = useRef<HTMLDivElement>(null);
+  const ambientContextRef = useRef<AudioContext | null>(null);
+  const ambientNodesRef = useRef<AudioNode[]>([]);
 
   const act = useCallback(async (action: Parameters<typeof sendAction>[0]) => {
     setBusy(true); setError("");
@@ -162,6 +164,50 @@ export default function App() {
       oscillator.onended = () => { void context.close(); };
     } catch { setError("Could not play sound. Check your browser audio settings."); }
   };
+
+  // Low-volume atmospheric drone. Audio starts only after the user enables SOUND.
+  useEffect(() => {
+    if (!soundEnabled) {
+      ambientNodesRef.current.forEach(node => { try { if (node instanceof OscillatorNode) node.stop(); } catch {} try { node.disconnect(); } catch {} });
+      ambientNodesRef.current = [];
+      const oldContext = ambientContextRef.current;
+      ambientContextRef.current = null;
+      if (oldContext && oldContext.state !== "closed") void oldContext.close();
+      return;
+    }
+    try {
+      const AudioContextClass = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      if (!AudioContextClass) return;
+      const context = new AudioContextClass();
+      ambientContextRef.current = context;
+      if (context.state === "suspended") void context.resume();
+      const master = context.createGain();
+      master.gain.value = 0.0001;
+      master.gain.setTargetAtTime(0.035, context.currentTime, 1.1);
+      master.connect(context.destination);
+      const filter = context.createBiquadFilter();
+      filter.type = "lowpass";
+      filter.frequency.value = 420;
+      filter.Q.value = 0.7;
+      filter.connect(master);
+      const low = context.createOscillator();
+      low.type = "triangle"; low.frequency.value = 55;
+      const high = context.createOscillator();
+      high.type = "sine"; high.frequency.value = 82.41;
+      const lowGain = context.createGain(); lowGain.gain.value = 0.48;
+      const highGain = context.createGain(); highGain.gain.value = 0.16;
+      low.connect(lowGain); lowGain.connect(filter);
+      high.connect(highGain); highGain.connect(filter);
+      low.start(); high.start();
+      ambientNodesRef.current = [low, high, lowGain, highGain, filter, master];
+      return () => {
+        ambientNodesRef.current.forEach(node => { try { if (node instanceof OscillatorNode) node.stop(); } catch {} try { node.disconnect(); } catch {} });
+        ambientNodesRef.current = [];
+        if (ambientContextRef.current && ambientContextRef.current.state !== "closed") void ambientContextRef.current.close();
+        ambientContextRef.current = null;
+      };
+    } catch { /* Sound is optional; the game remains playable if audio is blocked. */ }
+  }, [soundEnabled]);
 
   useEffect(() => {
     const phaseNow = game?.room.phase;
