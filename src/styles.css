@@ -516,3 +516,27 @@ body { min-height: 100vh; min-height: 100dvh; }
   .cinema-scene { width: min(300px, 76vw); }
   .cinematic-home > .panel { margin-top: 8px; }
 }
+
+
+/* Final viewport anchor: prevent scroll anchoring and keep every screen rooted at the top. */
+html {
+  scroll-behavior: auto !important;
+  overflow-anchor: none !important;
+  scroll-padding-top: 0 !important;
+}
+body, #root {
+  overflow-anchor: none !important;
+}
+.shell {
+  height: auto !important;
+  min-height: 100vh !important;
+  min-height: 100dvh !important;
+  overflow-x: clip !important;
+  overflow-y: visible !important;
+}
+.shell > header {
+  flex: 0 0 auto;
+}
+.hero, .room-view {
+  scroll-margin-top: 0 !important;
+}
