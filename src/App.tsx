@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { sendAction, subscribeToRoom, type GameSnapshot } from "./lib/api";
 import { isConfigured } from "./lib/supabase";
+import { isValidChatMessage, isValidClue, isValidNickname, isValidRoomCode, phaseDuration, secondsRemaining } from "./lib/game";
 
 function playerToken() {
   const key = "shadow-impostor-player-token";
@@ -152,12 +153,12 @@ export default function App() {
   }, [game?.room.code, refresh]);
 
   const createRoom = async () => {
-    if (name.trim().length < 2) { setError("Enter a nickname with at least 2 characters."); return; }
+    if (!isValidNickname(name)) { setError("Use 2-20 characters: letters, numbers, spaces, dots, hyphens or underscores."); return; }
     await act({action:"create_room", name:name.trim(), token});
   };
   const joinRoom = async () => {
     if (name.trim().length < 2) { setError("Enter a nickname with at least 2 characters."); return; }
-    if (codeInput.trim().length < 4) { setError("Enter the room code."); return; }
+    if (!isValidRoomCode(codeInput)) { setError("Enter the full 6-character room code."); return; }
     // Joining a room needs a new guest identity, including same-browser testing.
     const joinToken = crypto.randomUUID() + crypto.randomUUID();
     token = joinToken;
@@ -165,20 +166,19 @@ export default function App() {
     await act({action:"join_room", code:codeInput.trim().toUpperCase(), name:name.trim(), token:joinToken});
   };
   const sendClue = async () => {
-    if (!game || clue.trim().length < 1) return;
+    if (!game || !isValidClue(clue)) { if (game) setError("Clues must be 1-100 characters."); return; }
     const ok = await act({action:"submit_clue", code:game.room.code, token, clue:clue.trim()}); if (ok) { setClue(""); playFeedback("confirm"); }
   };
   const sendMessage = async () => {
-    if (!game || !message.trim()) return;
+    if (!game || !isValidChatMessage(message)) { if (game) setError("Chat messages must be 1-300 characters."); return; }
     const ok = await act({action:"send_chat", code:game.room.code, token, message:message.trim()}); if (ok) { setMessage(""); playFeedback("confirm"); }
   };
   const phase = game?.room.phase;
   const submittedClues = game?.players.filter(p => p.has_clued).length ?? 0;
   const playerTotal = game?.players.length ?? 0;
-  const phaseDuration = phase === "clue" ? 30 : phase === "discussion" ? 60 : phase === "voting" ? 45 : phase === "guess" ? 15 : 0;
-  const phaseStartedAt = game?.room.phase_started_at ? new Date(game.room.phase_started_at).getTime() : clockNow;
-  const secondsLeft = phaseDuration ? Math.max(0, phaseDuration - Math.floor((clockNow - phaseStartedAt) / 1000)) : 0;
-  const phaseProgress = phaseDuration ? Math.min(100, Math.max(0, ((phaseDuration - secondsLeft) / phaseDuration) * 100)) : 0;
+  const phaseSeconds = phaseDuration(phase);
+  const secondsLeft = secondsRemaining(phase, game?.room.phase_started_at, clockNow);
+  const phaseProgress = phaseDuration ? Math.min(100, Math.max(0, ((phaseSeconds - secondsLeft) / phaseSeconds) * 100)) : 0;
   const waitingTitle = phase === "lobby" ? "The crew is assembling" : phase === "clue" ? "The clues are taking shape" : phase === "discussion" ? "Read between the lines" : phase === "voting" ? "The votes are being sealed" : phase === "guess" ? "One last chance" : phase === "results" ? "The truth is out" : "The shadows are moving";
   return <main ref={shellRef} className={busy ? "shell is-busy" : "shell"}>
     <div className="cursor-orb" ref={cursorRef} aria-hidden="true"><span /></div>
@@ -201,7 +201,7 @@ export default function App() {
       <p className="intro">{phase === "lobby" ? "Share the code. You need 4 to 8 players to begin." : "Room updates live. Keep your role and secret word private."}</p>
       <div className="panel">
         <button className="room-code room-code-button" type="button" onClick={() => void copyRoomCode()} aria-label="Copy room code"><span className="room-code-label">ROOM CODE</span><strong>{game.room.code}</strong><span className="room-code-copy">{copiedRoomCode ? "✓ COPIED" : "▢ COPY CODE"}</span></button>
-        <div className="phase-banner"><div className="phase-orb"><span>◈</span></div><div className="phase-copy"><p className="eyebrow">CURRENT PHASE</p><h2>{waitingTitle}</h2><p>{phase === "lobby" ? "Invite your crew. The game begins when the host is ready." : phase === "clue" ? `${submittedClues} of ${playerTotal} players have submitted clues.` : phase === "voting" ? "Choose carefully. Votes stay hidden until the reveal." : phase === "discussion" ? "Compare clues and look for the odd one out." : phase === "guess" ? "Can the impostor name the crew's word?" : phase === "results" ? "The round is complete. Review the outcome below." : "Waiting for the room to update."}</p></div><div className="live-pulse"><i /> LIVE</div></div>{phaseDuration > 0 && <div className="phase-timer" aria-label={`${secondsLeft} seconds remaining`}><div className="timer-top"><span>TIME REMAINING</span><strong className={secondsLeft <= 10 ? "timer-urgent" : ""}>{String(Math.floor(secondsLeft/60)).padStart(2,"0")}:{String(secondsLeft%60).padStart(2,"0")}</strong></div><div className="timer-track"><span style={{width:`${phaseProgress}%`}} /></div></div>}
+        <div className="phase-banner"><div className="phase-orb"><span>◈</span></div><div className="phase-copy"><p className="eyebrow">CURRENT PHASE</p><h2>{waitingTitle}</h2><p>{phase === "lobby" ? "Invite your crew. The game begins when the host is ready." : phase === "clue" ? `${submittedClues} of ${playerTotal} players have submitted clues.` : phase === "voting" ? "Choose carefully. Votes stay hidden until the reveal." : phase === "discussion" ? "Compare clues and look for the odd one out." : phase === "guess" ? "Can the impostor name the crew's word?" : phase === "results" ? "The round is complete. Review the outcome below." : "Waiting for the room to update."}</p></div><div className="live-pulse"><i /> LIVE</div></div>{phaseSeconds > 0 && <div className="phase-timer" aria-label={`${secondsLeft} seconds remaining`}><div className="timer-top"><span>TIME REMAINING</span><strong className={secondsLeft <= 10 ? "timer-urgent" : ""}>{String(Math.floor(secondsLeft/60)).padStart(2,"0")}:{String(secondsLeft%60).padStart(2,"0")}</strong></div><div className="timer-track"><span style={{width:`${phaseProgress}%`}} /></div></div>}
         <div className="panel-head"><span className="mini-icon">✦</span><div><h2>{game.you.name}{game.you.is_host ? " · HOST" : ""}</h2><p>{game.room.player_count} players · {phase?.toUpperCase()}</p></div></div>
         {phase === "lobby" && <><div className="lobby-progress"><div><span>CREW ASSEMBLY</span><strong>{playerTotal}/8</strong></div><div className="lobby-progress-track"><span style={{width:`${Math.min(100, playerTotal/8*100)}%`}} /></div><small>{playerTotal < 4 ? `${4-playerTotal} more ${4-playerTotal===1?"player":"players"} needed to unlock launch` : playerTotal === 8 ? "Crew full. The game is ready." : "Minimum reached. More suspects can still join."}</small></div><h2>Players</h2><ul className="players">{game.players.map(p=><li key={p.player_id}><span>{p.name}{p.is_host?" · HOST":""}</span><span>{p.alive?"●":"○"}</span></li>)}</ul><button className="primary launch-button" disabled={busy||!game.you.is_host||game.room.player_count<4} onClick={()=>{playFeedback("confirm");void act({action:"start_game",code:game.room.code,token})}}>{busy ? "Launching game..." : game.you.is_host ? (game.room.player_count<4?"Waiting for 4 players":"Start game"):"Waiting for host"} <span>↗</span></button></>}
         {phase !== "lobby" && <div className={`secret ${roleVisible ? "secret-revealed" : "secret-concealed"}`}><div className="secret-card-top"><p className="eyebrow">PERSONAL DOSSIER · ONLY YOU</p><span className="secret-lock">{roleVisible ? "ACCESS GRANTED" : "ENCRYPTED"}</span></div>{roleVisible ? <div className="role-reveal-content" key={`${game.room.round}-${game.you.role}`}><p className={`role-stamp ${game.you.role === "impostor" ? "role-stamp-impostor" : ""}`}>{game.you.role === "impostor" ? "☠" : "◈"}</p><h2>{game.you.role?.toUpperCase() ?? "UNKNOWN"}</h2><p className="word">{game.you.word ?? "Word hidden"}</p><p className="fine">Keep this word secret. Impostors receive a decoy word.</p></div> : <div className="secret-locked-content"><div className="secret-locked-glyph">◈</div><h2>YOUR IDENTITY IS SEALED</h2><p>Your role and word are hidden. Make sure nobody is looking before you reveal them.</p></div>}<button className="secret-reveal-button" type="button" onClick={() => { setRoleVisible(value => !value); if (!roleVisible) playFeedback("reveal"); }}>{roleVisible ? "Hide my role" : "Reveal my role"}<span>{roleVisible ? "◉" : "◎"}</span></button></div>}
