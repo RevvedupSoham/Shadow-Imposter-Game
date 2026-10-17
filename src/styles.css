@@ -598,3 +598,12 @@ body, #root {
   .coordinate-two { right: 0; }
   .scene-caption { bottom: 3%; }
 }
+
+/* Keep the app chrome pinned to the top of the document flow. The cinematic
+   background is a fixed layer and must never create a blank row above the header. */
+html, body, #root { margin: 0; padding-top: 0; }
+.shell { padding-top: 0 !important; }
+.shell > .scene-video-layer { top: 0 !important; }
+.shell > header { order: 0; margin-block-start: 0 !important; }
+.shell > .hero { order: 1; }
+.shell > footer { order: 2; }
