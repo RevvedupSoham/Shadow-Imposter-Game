@@ -77,11 +77,14 @@ export default function App() {
   }, [game?.room.code]);
 
   useLayoutEffect(() => {
-    // Reset the actual document scroller before the first paint, not after it.
+    // Anchor the actual app header to the viewport. scrollTo alone can miss a
+    // nested scroller or lose a race with browser scroll restoration.
     const previousRestoration = window.history.scrollRestoration;
     window.history.scrollRestoration = "manual";
     const reset = () => {
-      window.scrollTo(0, 0);
+      const header = shellRef.current?.querySelector("header");
+      header?.scrollIntoView({ block: "start", behavior: "instant" });
+      window.scrollTo({ top: 0, left: 0, behavior: "instant" });
       document.documentElement.scrollTop = 0;
       document.body.scrollTop = 0;
       if (shellRef.current) shellRef.current.scrollTop = 0;
@@ -90,10 +93,13 @@ export default function App() {
     const first = window.requestAnimationFrame(reset);
     const second = window.requestAnimationFrame(() => window.requestAnimationFrame(reset));
     window.addEventListener("pageshow", reset);
+    window.addEventListener("load", reset, { once: true });
+    document.fonts?.ready.then(reset).catch(() => {});
     return () => {
       window.cancelAnimationFrame(first);
       window.cancelAnimationFrame(second);
       window.removeEventListener("pageshow", reset);
+      window.removeEventListener("load", reset);
       window.history.scrollRestoration = previousRestoration;
     };
   }, []);
