@@ -66,3 +66,25 @@
 .result-footnote{font-size:10px;line-height:1.6;color:#85889e;margin:12px 0 0}
 @keyframes result-arrive{from{opacity:0;transform:translateY(8px) scale(.99)}to{opacity:1;transform:translateY(0) scale(1)}}
 @media(prefers-reduced-motion:reduce){.result-reveal{animation:none}}
+
+/* Server-clock countdown and crew readiness */
+.phase-timer{margin:-7px 0 18px;padding:0 2px}
+.timer-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;font:9px "DM Mono",monospace;letter-spacing:.1em;color:#85889e}
+.timer-top strong{font-size:15px;letter-spacing:.08em;color:#c2b5ff;font-weight:500;font-variant-numeric:tabular-nums}
+.timer-top strong.timer-urgent{color:#ff829a;animation:timer-pulse 1s ease-in-out infinite}
+.timer-track,.crew-progress-track{height:4px;overflow:hidden;border-radius:999px;background:#ffffff12}
+.timer-track span,.crew-progress-track span{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#a18aff,#50e2bb);transition:width .35s linear}
+.crew-progress{padding:12px;margin:0 0 12px;border:1px solid #ffffff12;border-radius:9px;background:#ffffff04}
+.crew-progress>div:first-child{display:flex;justify-content:space-between;align-items:center;margin-bottom:9px;font:9px "DM Mono",monospace;letter-spacing:.09em;color:#85889e}
+.crew-progress strong{color:#c2b5ff;font-size:11px;font-weight:500}
+.crew-player{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.crew-identity{display:flex;align-items:center;gap:10px;min-width:0}
+.player-dot{display:block;width:7px;height:7px;flex:0 0 7px;border-radius:50%;background:#50e2bb;box-shadow:0 0 9px #50e2bb40}
+.player-dot.dead{background:#747789;box-shadow:none}
+.crew-identity>span{display:grid;gap:3px;min-width:0}
+.crew-identity small{font-size:10px;color:#777b91}
+.crew-state{font:9px "DM Mono",monospace;letter-spacing:.08em;color:#70e6c4}
+.crew-state.state-done{padding:4px 7px;border:1px solid #50e2bb30;border-radius:6px;background:#50e2bb0c}
+.crew-state.state-dead{color:#85889e}
+@keyframes timer-pulse{0%,100%{opacity:1}50%{opacity:.6}}
+@media(prefers-reduced-motion:reduce){.timer-top strong.timer-urgent{animation:none}.timer-track span,.crew-progress-track span{transition:none}}
