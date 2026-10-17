@@ -105,20 +105,51 @@ export default function App() {
     return () => window.clearInterval(clock);
   }, []);
 
-  // Pointer tracking is direct-to-DOM to avoid React renders on mouse movement.
+  // Cursor tracking stays direct-to-DOM; UI sounds are short, soft and throttled.
   useEffect(() => {
     if (!window.matchMedia("(pointer: fine)").matches) return;
     const shell = shellRef.current;
     const cursor = cursorRef.current;
     if (!shell || !cursor) return;
     let lastRipple = 0;
+    let lastHoverSound = 0;
+    let wasInteractive = false;
+    let audio: AudioContext | null = null;
+    const tone = (kind: "hover" | "click") => {
+      if (!soundEnabled) return;
+      try {
+        const AudioContextClass = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+        if (!AudioContextClass) return;
+        audio ??= new AudioContextClass();
+        if (audio.state === "suspended") void audio.resume();
+        const oscillator = audio.createOscillator();
+        const gain = audio.createGain();
+        const now = audio.currentTime;
+        oscillator.type = "sine";
+        oscillator.frequency.setValueAtTime(kind === "hover" ? 740 : 480, now);
+        oscillator.frequency.exponentialRampToValueAtTime(kind === "hover" ? 920 : 360, now + (kind === "hover" ? 0.035 : 0.065));
+        gain.gain.setValueAtTime(0.0001, now);
+        gain.gain.exponentialRampToValueAtTime(kind === "hover" ? 0.009 : 0.022, now + 0.008);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + (kind === "hover" ? 0.045 : 0.09));
+        oscillator.connect(gain); gain.connect(audio.destination);
+        oscillator.start(now); oscillator.stop(now + 0.1);
+        oscillator.onended = () => { oscillator.disconnect(); gain.disconnect(); };
+      } catch { /* sound is an optional enhancement */ }
+    };
     const move = (event: PointerEvent) => {
       shell.style.setProperty("--pointer-x", `${event.clientX}px`);
       shell.style.setProperty("--pointer-y", `${event.clientY}px`);
       cursor.style.transform = `translate3d(${event.clientX}px, ${event.clientY}px, 0)`;
       const target = event.target instanceof Element ? event.target : null;
-      cursor.classList.toggle("is-interactive", !!target?.closest("button, a, input, textarea, [role=button], .vote-card"));
+      const interactive = !!target?.closest("button, a, input, textarea, [role=button], .vote-card");
+      cursor.classList.toggle("is-interactive", interactive);
       cursor.classList.toggle("is-text", !!target?.closest("input, textarea"));
+      const now = performance.now();
+      if (interactive && !wasInteractive && now - lastHoverSound > 120) {
+        lastHoverSound = now;
+        tone("hover");
+      }
+      wasInteractive = interactive;
     };
     const click = (event: PointerEvent) => {
       const now = performance.now();
@@ -130,14 +161,16 @@ export default function App() {
       ripple.style.top = `${event.clientY}px`;
       document.body.appendChild(ripple);
       window.setTimeout(() => ripple.remove(), 760);
+      tone("click");
     };
     window.addEventListener("pointermove", move, { passive: true });
     window.addEventListener("pointerdown", click, { passive: true });
     return () => {
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerdown", click);
+      if (audio && audio.state !== "closed") void audio.close();
     };
-  }, []);
+  }, [soundEnabled]);
 
   useEffect(() => {
     setVoteSubmitted(false);
@@ -176,108 +209,6 @@ export default function App() {
       oscillator.onended = () => { void context.close(); };
     } catch { setError("Could not play sound. Check your browser audio settings."); }
   };
-
-  // Softer procedural soundtrack: warm pads, slow pulses, and gentle plucked notes.
-  // Starts only after the player enables MUSIC, so browser autoplay rules are respected.
-  useEffect(() => {
-    if (!soundEnabled) {
-      const oldContext = ambientContextRef.current;
-      ambientContextRef.current = null;
-      ambientNodesRef.current = [];
-      if (oldContext && oldContext.state !== "closed") void oldContext.close();
-      return;
-    }
-    const AudioContextClass = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-    if (!AudioContextClass) { setError("Procedural music is not supported by this browser."); return; }
-    const context = new AudioContextClass();
-    ambientContextRef.current = context;
-
-    const master = context.createGain();
-    const compressor = context.createDynamicsCompressor();
-    master.gain.value = 0.2;
-    compressor.threshold.value = -30;
-    compressor.knee.value = 24;
-    compressor.ratio.value = 2;
-    compressor.attack.value = 0.08;
-    compressor.release.value = 0.55;
-    master.connect(compressor);
-    compressor.connect(context.destination);
-
-    // Gentle, filtered fifths create a warm ambient bed without harsh high-frequency energy.
-    const padFilter = context.createBiquadFilter();
-    padFilter.type = "lowpass";
-    padFilter.frequency.value = 520;
-    padFilter.Q.value = 0.45;
-    const padGain = context.createGain();
-    padGain.gain.value = 0.0001;
-    padGain.connect(padFilter);
-    padFilter.connect(master);
-    const padA = context.createOscillator();
-    const padB = context.createOscillator();
-    const padC = context.createOscillator();
-    padA.type = "sine";
-    padB.type = "triangle";
-    padC.type = "sine";
-    padA.frequency.value = 110;
-    padB.frequency.value = 164.81;
-    padC.frequency.value = 220;
-    padB.detune.value = -3;
-    padC.detune.value = 4;
-    padA.connect(padGain); padB.connect(padGain); padC.connect(padGain);
-    padA.start(); padB.start(); padC.start();
-    padGain.gain.setValueAtTime(0.0001, context.currentTime);
-    padGain.gain.exponentialRampToValueAtTime(0.42, context.currentTime + 3.5);
-
-    const pulse = context.createOscillator();
-    const pulseFilter = context.createBiquadFilter();
-    const pulseGain = context.createGain();
-    pulse.type = "sine";
-    pulse.frequency.value = 55;
-    pulseFilter.type = "lowpass";
-    pulseFilter.frequency.value = 130;
-    pulseGain.gain.value = 0.0001;
-    pulse.connect(pulseFilter); pulseFilter.connect(pulseGain); pulseGain.connect(master);
-    pulse.start();
-
-    let step = 0;
-    const notes = [220, 261.63, 329.63, 293.66, 261.63, 196, 220, 164.81];
-    const tick = () => {
-      if (context.state !== "running") return;
-      const now = context.currentTime;
-      // Slow breathing bass, more atmosphere than a hard beat.
-      pulseGain.gain.cancelScheduledValues(now);
-      pulseGain.gain.setValueAtTime(Math.max(0.0001, pulseGain.gain.value), now);
-      pulseGain.gain.linearRampToValueAtTime(step % 4 === 0 ? 0.075 : 0.028, now + 0.22);
-      pulseGain.gain.linearRampToValueAtTime(0.0001, now + 1.05);
-
-      // Soft, bell-like plucks drift in and out over the pad.
-      if (step % 3 === 0) {
-        const note = context.createOscillator();
-        const toneFilter = context.createBiquadFilter();
-        const envelope = context.createGain();
-        note.type = "sine";
-        note.frequency.value = notes[(step / 3) % notes.length];
-        toneFilter.type = "lowpass";
-        toneFilter.frequency.value = 1450;
-        envelope.gain.setValueAtTime(0.0001, now);
-        envelope.gain.exponentialRampToValueAtTime(step % 6 === 0 ? 0.038 : 0.022, now + 0.07);
-        envelope.gain.exponentialRampToValueAtTime(0.0001, now + 1.25);
-        note.connect(toneFilter); toneFilter.connect(envelope); envelope.connect(master);
-        note.start(now); note.stop(now + 1.3);
-        note.onended = () => { note.disconnect(); toneFilter.disconnect(); envelope.disconnect(); };
-      }
-      step += 1;
-    };
-    const timer = window.setInterval(tick, 620);
-    void context.resume();
-    ambientNodesRef.current = [master, compressor, padFilter, padGain, padA, padB, padC, pulse, pulseFilter, pulseGain];
-    return () => {
-      window.clearInterval(timer);
-      if (ambientContextRef.current === context) ambientContextRef.current = null;
-      ambientNodesRef.current = [];
-      if (context.state !== "closed") void context.close();
-    };
-  }, [soundEnabled]);
 
   useEffect(() => {
     const phaseNow = game?.room.phase;
@@ -329,7 +260,7 @@ export default function App() {
     <div className="cursor-orb" ref={cursorRef} aria-hidden="true"><span /></div>
     <div className="glow glow-one" /><div className="glow glow-two" />
     {loadingScreen && <section className="boot-screen" aria-label="Loading Shadow Impostor"><video className="boot-video" autoPlay muted loop playsInline preload="auto" onCanPlay={() => setBootVideoReady(true)} onError={() => setBootVideoReady(true)}><source src={mediaUrl("BG1.mp4")} type="video/mp4" /></video><div className="boot-shade" /><div className="boot-content"><span className="boot-mark">◈</span><p className="boot-kicker">A SOCIAL DEDUCTION EXPERIENCE</p><h1>SHADOW <span>IMPOSTOR</span></h1><div className="boot-loader" role="status" aria-live="polite"><span className="boot-loader-track"><i /></span><span>INITIALIZING THE SHADOWS</span></div><p className="boot-footnote">Securing the room · Preparing your experience</p></div><span className="boot-version">SYSTEM READY WHEN YOU ARE</span></section>}
-    <header><span className="mark">◈</span><span>SHADOW<span className="accent"> IMPOSTOR</span></span><div className="header-actions"><button className="sound-toggle" type="button" aria-pressed={soundEnabled} onClick={() => { const enabling = !soundEnabled; setSoundEnabled(enabling); if (enabling) playFeedback("confirm", true); }} title={soundEnabled ? "Turn procedural gameplay music off" : "Turn procedural gameplay music on"}><span>{soundEnabled ? "♫" : "♪"}</span> MUSIC {soundEnabled ? "ON" : "OFF"}</button><span className="status"><i /> LIVE SOCIAL DEDUCTION</span></div></header>
+    <header><span className="mark">◈</span><span>SHADOW<span className="accent"> IMPOSTOR</span></span><div className="header-actions"><button className="sound-toggle" type="button" aria-pressed={soundEnabled} onClick={() => { const enabling = !soundEnabled; setSoundEnabled(enabling); if (enabling) playFeedback("confirm", true); }} title={soundEnabled ? "Turn interface sounds off" : "Turn interface sounds on"}><span>{soundEnabled ? "◖" : "♪"}</span> SOUND {soundEnabled ? "ON" : "OFF"}</button><span className="status"><i /> LIVE SOCIAL DEDUCTION</span></div></header>
     {view === "home" || !game ? <section className="hero cinematic-home">
       <div className="cinema-scene" aria-hidden="true"><div className="scene-grid"/><div className="scene-moon"/><div className="scene-ring scene-ring-one"/><div className="scene-ring scene-ring-two"/><div className="scene-core">◈</div><span className="scene-coordinate coordinate-one">SECTOR 07 / UNKNOWN</span><span className="scene-coordinate coordinate-two">TRUST INDEX: UNSTABLE</span><span className="scene-caption">A SOCIAL DEDUCTION EXPERIENCE</span></div>
       <div className="cinema-copy"><p className="eyebrow"><span className="eyebrow-line"/> TRUST IS A LIMITED RESOURCE</p><h1>ONE OF YOU<br/><span>IS LYING.</span></h1>
