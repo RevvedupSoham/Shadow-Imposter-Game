@@ -104,9 +104,10 @@ export default function App() {
   return <main className="shell">
     <div className="glow glow-one" /><div className="glow glow-two" />
     <header><span className="mark">◈</span><span>SHADOW<span className="accent"> IMPOSTOR</span></span><span className="status"><i /> LIVE SOCIAL DEDUCTION</span></header>
-    {view === "home" || !game ? <section className="hero">
-      <p className="eyebrow">TRUST IS A LIMITED RESOURCE</p><h1>Someone here<br/><span>is not one of you.</span></h1>
-      <p className="intro">Share clues. Read the room. Find the impostor before they find you.</p>
+    {view === "home" || !game ? <section className="hero cinematic-home">
+      <div className="cinema-scene" aria-hidden="true"><div className="scene-grid"/><div className="scene-moon"/><div className="scene-ring scene-ring-one"/><div className="scene-ring scene-ring-two"/><div className="scene-core">◈</div><span className="scene-coordinate coordinate-one">SECTOR 07 / UNKNOWN</span><span className="scene-coordinate coordinate-two">TRUST INDEX: UNSTABLE</span><span className="scene-caption">A SOCIAL DEDUCTION EXPERIENCE</span></div>
+      <div className="cinema-copy"><p className="eyebrow"><span className="eyebrow-line"/> TRUST IS A LIMITED RESOURCE</p><h1>ONE OF YOU<br/><span>IS LYING.</span></h1>
+      <p className="intro">A secret word. A room full of suspects. Every clue brings you closer to the truth, or closer to being exposed.</p></div>
       <div className="panel"><div className="panel-head"><span className="mini-icon">✦</span><div><h2>Enter the shadows</h2><p>Create a room or join your crew with a code.</p></div></div>
         {!isConfigured && <p className="notice">Backend setup required: configure the Supabase URL and publishable key in your hosting environment.</p>}
         <label htmlFor="nickname">YOUR NICKNAME</label><input id="nickname" className="text-input" placeholder="How should we call you?" maxLength={20} value={name} onChange={e=>setName(e.target.value)} />
