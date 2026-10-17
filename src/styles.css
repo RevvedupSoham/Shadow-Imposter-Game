@@ -492,10 +492,19 @@ body { min-height: 100vh; min-height: 100dvh; }
 .cinematic-home .cinema-copy .intro { margin: 14px 0 18px; max-width: 48ch; }
 .cinematic-home > .panel { margin-top: 12px; padding: 20px clamp(20px, 2.5vw, 28px); }
 .cinematic-home .panel-head { margin-bottom: 16px; }
-.cinematic-home .cinematic-home .features { margin-top: 16px; padding: 12px 0; }
+.cinematic-home .features { margin-top: 16px; padding: 12px 0; }
 @media (min-width: 761px) and (max-height: 820px) {
   .hero.cinematic-home { margin-top: 12px; }
   .cinematic-home .cinema-scene { height: 230px; }
   .cinematic-home .cinema-copy h1 { font-size: clamp(42px, 4.6vw, 56px); }
-  .cinematic-home .cinematic-home .intro { margin: 10px 0 12px; }
+  .cinematic-home .cinema-copy .intro { margin: 10px 0 12px; }
 }
+
+
+/* Keep the custom cursor fixed above every screen and interactive layer. */
+.shell > .cursor-orb {
+  position: fixed !important;
+  z-index: 1100 !important;
+  pointer-events: none;
+}
+.click-ripple { z-index: 1099; }
