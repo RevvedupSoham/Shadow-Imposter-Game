@@ -165,13 +165,93 @@ export default function App() {
     } catch { setError("Could not play sound. Check your browser audio settings."); }
   };
 
-  // Spotify playback is controlled by the embedded player. Browsers require the user to press Play.
+  // Procedural stealth-game soundtrack: evolving drone, pulsing bass, and sparse minor-key synth notes.
+  // Audio starts only after the player enables THEME, satisfying browser gesture policies.
   useEffect(() => {
     if (!soundEnabled) {
       const oldContext = ambientContextRef.current;
       ambientContextRef.current = null;
+      ambientNodesRef.current = [];
       if (oldContext && oldContext.state !== "closed") void oldContext.close();
+      return;
     }
+    const AudioContextClass = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!AudioContextClass) { setError("Procedural music is not supported by this browser."); return; }
+    const context = new AudioContextClass();
+    ambientContextRef.current = context;
+    const master = context.createGain();
+    const compressor = context.createDynamicsCompressor();
+    master.gain.value = 0.42;
+    compressor.threshold.value = -24;
+    compressor.knee.value = 18;
+    compressor.ratio.value = 3;
+    compressor.attack.value = 0.025;
+    compressor.release.value = 0.3;
+    master.connect(compressor);
+    compressor.connect(context.destination);
+
+    const droneFilter = context.createBiquadFilter();
+    droneFilter.type = "lowpass";
+    droneFilter.frequency.value = 430;
+    droneFilter.Q.value = 0.7;
+    droneFilter.connect(master);
+    const droneA = context.createOscillator();
+    const droneB = context.createOscillator();
+    const droneGain = context.createGain();
+    droneA.type = "sawtooth";
+    droneB.type = "triangle";
+    droneA.frequency.value = 55;
+    droneB.frequency.value = 82.41;
+    droneB.detune.value = -7;
+    droneGain.gain.value = 0.035;
+    droneA.connect(droneGain); droneB.connect(droneGain); droneGain.connect(droneFilter);
+    droneA.start(); droneB.start();
+
+    const pulseGain = context.createGain();
+    pulseGain.gain.value = 0.0001;
+    pulseGain.connect(master);
+    const pulse = context.createOscillator();
+    pulse.type = "sine";
+    pulse.frequency.value = 55;
+    pulse.connect(pulseGain);
+    pulse.start();
+
+    let step = 0;
+    const notes = [110, 130.81, 164.81, 196, 164.81, 146.83, 130.81, 98];
+    const tick = () => {
+      if (context.state !== "running") return;
+      const now = context.currentTime;
+      pulseGain.gain.cancelScheduledValues(now);
+      pulseGain.gain.setValueAtTime(0.0001, now);
+      pulseGain.gain.exponentialRampToValueAtTime(step % 4 === 0 ? 0.11 : 0.055, now + 0.035);
+      pulseGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.24);
+      if (step % 2 === 0) {
+        const note = context.createOscillator();
+        const envelope = context.createGain();
+        const filter = context.createBiquadFilter();
+        note.type = "triangle";
+        note.frequency.setValueAtTime(notes[(step / 2) % notes.length], now);
+        note.frequency.exponentialRampToValueAtTime(notes[(step / 2) % notes.length] * 0.995, now + 0.34);
+        filter.type = "lowpass";
+        filter.frequency.value = step % 8 === 0 ? 1250 : 760;
+        envelope.gain.setValueAtTime(0.0001, now);
+        envelope.gain.exponentialRampToValueAtTime(step % 8 === 0 ? 0.095 : 0.052, now + 0.025);
+        envelope.gain.exponentialRampToValueAtTime(0.0001, now + 0.36);
+        note.connect(filter); filter.connect(envelope); envelope.connect(master);
+        note.start(now); note.stop(now + 0.38);
+        note.onended = () => { note.disconnect(); filter.disconnect(); envelope.disconnect(); };
+      }
+      step += 1;
+    };
+    const timer = window.setInterval(tick, 310);
+    void context.resume();
+    ambientNodesRef.current = [master, compressor, droneFilter, droneA, droneB, droneGain, pulseGain, pulse];
+    return () => {
+      window.clearInterval(timer);
+      if (ambientContextRef.current === context) ambientContextRef.current = null;
+      ambientNodesRef.current = [];
+      if (context.state !== "closed") void context.close();
+    };
   }, [soundEnabled]);
 
   useEffect(() => {
@@ -224,7 +304,7 @@ export default function App() {
     <div className="cursor-orb" ref={cursorRef} aria-hidden="true"><span /></div>
     <div className="glow glow-one" /><div className="glow glow-two" />
     {loadingScreen && <section className="boot-screen" aria-label="Loading Shadow Impostor"><video className="boot-video" autoPlay muted loop playsInline preload="auto" onCanPlay={() => setBootVideoReady(true)} onError={() => setBootVideoReady(true)}><source src={mediaUrl("BG1.mp4")} type="video/mp4" /></video><div className="boot-shade" /><div className="boot-content"><span className="boot-mark">◈</span><p className="boot-kicker">A SOCIAL DEDUCTION EXPERIENCE</p><h1>SHADOW <span>IMPOSTOR</span></h1><div className="boot-loader" role="status" aria-live="polite"><span className="boot-loader-track"><i /></span><span>INITIALIZING THE SHADOWS</span></div><p className="boot-footnote">Securing the room · Preparing your experience</p></div><span className="boot-version">SYSTEM READY WHEN YOU ARE</span></section>}
-    <header><span className="mark">◈</span><span>SHADOW<span className="accent"> IMPOSTOR</span></span><div className="header-actions"><button className="sound-toggle" type="button" aria-pressed={soundEnabled} onClick={() => { const enabling = !soundEnabled; setSoundEnabled(enabling); if (enabling) playFeedback("confirm", true); }} title={soundEnabled ? "Hide theme music player" : "Open theme music player"}><span>{soundEnabled ? "♫" : "♪"}</span> THEME {soundEnabled ? "ON" : "OFF"}</button>{soundEnabled && <div className="spotify-theme-player"><iframe title="Shadow Impostor theme music on Spotify" src="https://open.spotify.com/embed/track/10ZgUdYwSX4MNhgDPTIIyN?utm_source=generator&theme=0" width="300" height="80" style={{border:0,borderRadius:12}} allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy" /></div>}<span className="status"><i /> LIVE SOCIAL DEDUCTION</span></div></header>
+    <header><span className="mark">◈</span><span>SHADOW<span className="accent"> IMPOSTOR</span></span><div className="header-actions"><button className="sound-toggle" type="button" aria-pressed={soundEnabled} onClick={() => { const enabling = !soundEnabled; setSoundEnabled(enabling); if (enabling) playFeedback("confirm", true); }} title={soundEnabled ? "Turn procedural gameplay music off" : "Turn procedural gameplay music on"}><span>{soundEnabled ? "♫" : "♪"}</span> MUSIC {soundEnabled ? "ON" : "OFF"}</button><span className="status"><i /> LIVE SOCIAL DEDUCTION</span></div></header>
     {view === "home" || !game ? <section className="hero cinematic-home">
       <div className="cinema-scene" aria-hidden="true"><div className="scene-grid"/><div className="scene-moon"/><div className="scene-ring scene-ring-one"/><div className="scene-ring scene-ring-two"/><div className="scene-core">◈</div><span className="scene-coordinate coordinate-one">SECTOR 07 / UNKNOWN</span><span className="scene-coordinate coordinate-two">TRUST INDEX: UNSTABLE</span><span className="scene-caption">A SOCIAL DEDUCTION EXPERIENCE</span></div>
       <div className="cinema-copy"><p className="eyebrow"><span className="eyebrow-line"/> TRUST IS A LIMITED RESOURCE</p><h1>ONE OF YOU<br/><span>IS LYING.</span></h1>
