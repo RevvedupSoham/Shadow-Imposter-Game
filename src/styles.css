@@ -476,3 +476,14 @@ body { min-height: 100vh; min-height: 100dvh; }
   .shell { padding-bottom: max(12px, env(safe-area-inset-bottom)); }
   .room-view { margin-top: 24px; }
 }
+
+
+/* Global cursor layer: keep pointer effects visible over loading, gameplay and results. */
+.shell > .cursor-orb {
+  position: fixed !important;
+  z-index: 1101 !important;
+  pointer-events: none !important;
+}
+.click-ripple {
+  z-index: 1100 !important;
+}
