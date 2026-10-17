@@ -572,3 +572,26 @@ html, body {
 .shell > .hero {
   opacity: 1;
 }
+
+
+/* Explicit cinematic stacking: background video behind every app screen. */
+.shell {
+  background: transparent !important;
+  isolation: isolate;
+}
+.shell > .scene-video-layer {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 0 !important;
+  pointer-events: none !important;
+}
+.shell > *:not(.scene-video-layer):not(.boot-screen) {
+  position: relative;
+  z-index: 2 !important;
+}
+.shell > .boot-screen {
+  z-index: 1000 !important;
+}
+.shell > .cursor-orb {
+  z-index: 1101 !important;
+}
