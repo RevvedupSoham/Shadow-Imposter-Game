@@ -614,3 +614,24 @@ html, body, #root { margin: 0; padding-top: 0; }
   z-index: 0 !important;
   pointer-events: none !important;
 }
+
+
+/* Seamless boot-to-home handoff: keep BG2 running underneath, fade only the boot layer. */
+.boot-screen {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 680ms cubic-bezier(.22,.61,.36,1), visibility 0s linear 0s;
+  will-change: opacity;
+}
+.boot-screen-exiting {
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+  transition: opacity 680ms cubic-bezier(.22,.61,.36,1), visibility 0s linear 680ms;
+}
+@media (prefers-reduced-motion: reduce) {
+  .boot-screen,
+  .boot-screen-exiting {
+    transition-duration: 180ms;
+  }
+}
