@@ -607,3 +607,10 @@ html, body, #root { margin: 0; padding-top: 0; }
 .shell > header { order: 0; margin-block-start: 0 !important; }
 .shell > .hero { order: 1; }
 .shell > footer { order: 2; }
+
+/* Decorative glow layers must not participate in the shell's flex layout. */
+.shell > .glow {
+  position: absolute !important;
+  z-index: 0 !important;
+  pointer-events: none !important;
+}
