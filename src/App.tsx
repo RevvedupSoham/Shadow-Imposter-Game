@@ -26,6 +26,7 @@ export default function App() {
   const [loadingScreen, setLoadingScreen] = useState(true);
   const [bootVideoReady, setBootVideoReady] = useState(false);
   const [minimumLoadingElapsed, setMinimumLoadingElapsed] = useState(false);
+  const [bootExiting, setBootExiting] = useState(false);
   const [name, setName] = useState("");
   const [codeInput, setCodeInput] = useState("");
   const [game, setGame] = useState<GameSnapshot | null>(null);
@@ -85,13 +86,24 @@ export default function App() {
 
   useEffect(() => {
     const minimum = window.setTimeout(() => setMinimumLoadingElapsed(true), 2000);
-    const failsafe = window.setTimeout(() => setLoadingScreen(false), 9000);
-    return () => { window.clearTimeout(minimum); window.clearTimeout(failsafe); };
+    return () => window.clearTimeout(minimum);
   }, []);
 
   useEffect(() => {
-    if (bootVideoReady && minimumLoadingElapsed) setLoadingScreen(false);
-  }, [bootVideoReady, minimumLoadingElapsed]);
+    if (!loadingScreen || !bootVideoReady || !minimumLoadingElapsed) return;
+    setBootExiting(true);
+    const finish = window.setTimeout(() => setLoadingScreen(false), 700);
+    return () => window.clearTimeout(finish);
+  }, [loadingScreen, bootVideoReady, minimumLoadingElapsed]);
+
+  useEffect(() => {
+    if (!loadingScreen) return;
+    const failsafe = window.setTimeout(() => {
+      setBootExiting(true);
+      window.setTimeout(() => setLoadingScreen(false), 700);
+    }, 9000);
+    return () => window.clearTimeout(failsafe);
+  }, [loadingScreen]);
 
   useEffect(() => {
     const clock = window.setInterval(() => setClockNow(Date.now()), 1000);
@@ -252,7 +264,7 @@ export default function App() {
     <div className="scene-video-layer" aria-hidden="true">{backgroundVideo && <video key={backgroundVideo} className={`scene-video scene-video-${backgroundVideo.replace(".mp4","").toLowerCase()}`} autoPlay muted loop playsInline preload={view === "home" || !game ? "auto" : "metadata"} onError={e => { e.currentTarget.style.visibility = "hidden"; }} onLoadedData={e => { e.currentTarget.style.visibility = "visible"; }}><source src={mediaUrl(backgroundVideo)} type="video/mp4" /></video>}<div className="scene-video-shade" /></div>
     <div className="cursor-orb" ref={cursorRef} aria-hidden="true"><span /></div>
     <div className="glow glow-one" /><div className="glow glow-two" />
-    {loadingScreen && <section className="boot-screen" aria-label="Loading Shadow Impostor"><video className="boot-video" autoPlay muted loop playsInline preload="auto" onCanPlay={() => setBootVideoReady(true)} onError={() => setBootVideoReady(true)}><source src={mediaUrl("BG1.mp4")} type="video/mp4" /></video><div className="boot-shade" /><div className="boot-content"><span className="boot-mark">◈</span><p className="boot-kicker">A SOCIAL DEDUCTION EXPERIENCE</p><h1>SHADOW <span>IMPOSTOR</span></h1><div className="boot-loader" role="status" aria-live="polite"><span className="boot-loader-track"><i /></span><span>INITIALIZING THE SHADOWS</span></div><p className="boot-footnote">Securing the room · Preparing your experience</p></div><span className="boot-version">SYSTEM READY WHEN YOU ARE</span></section>}
+    {loadingScreen && <section className={`boot-screen ${bootExiting ? "boot-screen-exiting" : ""}`} aria-label="Loading Shadow Impostor"><video className="boot-video" autoPlay muted loop playsInline preload="auto" onCanPlay={() => setBootVideoReady(true)} onError={() => setBootVideoReady(true)}><source src={mediaUrl("BG1.mp4")} type="video/mp4" /></video><div className="boot-shade" /><div className="boot-content"><span className="boot-mark">◈</span><p className="boot-kicker">A SOCIAL DEDUCTION EXPERIENCE</p><h1>SHADOW <span>IMPOSTOR</span></h1><div className="boot-loader" role="status" aria-live="polite"><span className="boot-loader-track"><i /></span><span>INITIALIZING THE SHADOWS</span></div><p className="boot-footnote">Securing the room · Preparing your experience</p></div><span className="boot-version">SYSTEM READY WHEN YOU ARE</span></section>}
     <header><span className="mark">◈</span><span>SHADOW<span className="accent"> IMPOSTOR</span></span><div className="header-actions"><button className="sound-toggle" type="button" aria-pressed={soundEnabled} onClick={() => { const enabling = !soundEnabled; setSoundEnabled(enabling); if (enabling) playFeedback("confirm", true); }} title={soundEnabled ? "Turn interface sounds off" : "Turn interface sounds on"}><span>{soundEnabled ? "◖" : "♪"}</span> SOUND {soundEnabled ? "ON" : "OFF"}</button><span className="status"><i /> LIVE SOCIAL DEDUCTION</span></div></header>
     {view === "home" || !game ? <section className="hero cinematic-home">
       <div className="cinema-scene" aria-hidden="true"><div className="scene-grid"/><div className="scene-moon"/><div className="scene-ring scene-ring-one"/><div className="scene-ring scene-ring-two"/><div className="scene-core">◈</div><span className="scene-coordinate coordinate-one">SECTOR 07 / UNKNOWN</span><span className="scene-coordinate coordinate-two">TRUST INDEX: UNSTABLE</span><span className="scene-caption">A SOCIAL DEDUCTION EXPERIENCE</span></div>
